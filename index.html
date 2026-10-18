@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="BoomPace"/>
+  <meta name="theme-color" content="#10141a"/>
+  <title>BoomPace • Custom Sports Interval Timer</title>
+
+  <!-- PWA Manifest Data URI -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"BoomPace Timer","short_name":"BoomPace","start_url":".","display":"standalone","background_color":"#10141a","theme_color":"#10141a"}'/>
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@600;700;800&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#10141a",
+            "surface-low": "#181c22",
+            "surface-container": "#1c2026",
+            "surface-high": "#262a31",
+            "surface-highest": "#31353c",
+            "primary": "#ffffff",
+            "primary-container": "#c3f400",
+            "on-primary": "#161e00",
+            "secondary-container": "#ff571a",
+            "on-surface-variant": "#c4c9ac"
+          },
+          fontFamily: {
+            "headline": ["Space Grotesk", "sans-serif"],
+            "mono-timer": ["JetBrains Mono", "monospace"],
+            "body": ["Inter", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Offline Fallback Styles (Protects against viewer errors) -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #10141a;
+      color: #dfe2eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); }
+    @keyframes strobe { 0%, 100% { opacity: 0; } 50% { opacity: 0.85; } }
+    .strobe-active { animation: strobe 0.4s ease-in-out 3; }
+  </style>
+</head>
+
+<body class="bg-surface antialiased flex flex-col min-h-screen">
+
+  <div id="flash-overlay" class="fixed inset-0 pointer-events-none z-[100] bg-secondary-container opacity-0 transition-opacity"></div>
+
+  <!-- Header -->
+  <header class="w-full z-40 bg-surface/95 backdrop-blur-md border-b border-surface-high px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2 cursor-pointer" onclick="navigateTab('active-workout')">
+      <div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center font-bold text-on-primary text-sm shadow">
+        BP
+      </div>
+      <div>
+        <h1 class="text-sm font-bold uppercase tracking-tight text-white leading-none">BoomPace</h1>
+        <span id="header-state" class="text-[10px] uppercase font-mono text-primary-container font-semibold">Active Workout</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button onclick="toggleLoudMode()" id="loud-btn" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-high border border-primary-container/30 text-primary-container text-[10px] font-mono font-bold active:scale-95">
+        <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
+        <span id="loud-text">110dB LOUD</span>
+      </button>
+      <button onclick="navigateTab('install-hub')" class="w-8 h-8 rounded-full bg-surface-high border border-surface-highest flex items-center justify-center text-white active:scale-90" title="QR & Install">
+        <span class="material-symbols-outlined text-[18px]">qr_code_2</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="flex-1 flex flex-col w-full px-4 pt-3 pb-24 max-w-lg mx-auto">
+
+    <!-- ==============================================
+         TAB 1: ACTIVE WORKOUT TIMER
+         ============================================== -->
+    <section id="tab-active-workout" class="tab-pane flex flex-col gap-3.5">
+      <div class="bg-surface-low rounded-xl p-4 border border-surface-high shadow-xl flex flex-col items-center relative overflow-hidden">
+        <div class="w-full flex items-center justify-between text-xs font-mono text-on-surface-variant pb-1">
+          <span class="flex items-center gap-1.5 text-primary-container font-bold" id="hud-interval-badge">
+            <span class="w-2 h-2 rounded-full bg-primary-container animate-ping"></span>
+            INTERVAL 1 OF 10
+          </span>
+          <span id="hud-total-cap" class="bg-surface-container px-2 py-0.5 rounded border border-surface-high text-white font-bold">10:00 CAP</span>
+        </div>
+
+        <!-- Radial Counter -->
+        <div class="relative w-60 h-60 flex items-center justify-center my-1">
+          <svg class="w-full h-full -rotate-90" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="90" fill="none" stroke="#262a31" stroke-width="6"/>
+            <circle id="session-ring" cx="100" cy="100" r="90" fill="none" stroke="#c3f400" stroke-width="6" stroke-dasharray="565.48" stroke-dashoffset="0" class="opacity-40 transition-all duration-300"/>
+            <circle cx="100" cy="100" r="74" fill="none" stroke="#31353c" stroke-width="10"/>
+            <circle id="interval-ring" cx="100" cy="100" r="74" fill="none" stroke="#c3f400" stroke-width="10" stroke-dasharray="464.95" stroke-dashoffset="0" class="transition-all duration-300"/>
+          </svg>
+
+          <div class="absolute flex flex-col items-center text-center">
+            <span id="hud-phase-label" class="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold font-mono">Work Phase</span>
+            <span id="interval-digits" class="text-5xl font-extrabold text-white tracking-tighter my-0.5 font-mono">1:00</span>
+            <div id="hud-sound-pill" class="flex items-center gap-1 px-2.5 py-0.5 rounded bg-primary-container text-on-primary text-[9px] uppercase font-black font-mono">
+              <span class="material-symbols-outlined text-[12px] font-bold">bolt</span>
+              <span id="hud-cue-type">2× BOOM ON MARK</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full grid grid-cols-2 gap-2 bg-surface-container rounded-lg p-2.5 border border-surface-high text-xs font-mono">
+          <div>
+            <span class="text-[9px] uppercase text-on-surface-variant block">Session Elapsed</span>
+            <span id="session-elapsed" class="text-base font-bold text-white">00:00</span>
+          </div>
+          <div class="text-right">
+            <span class="text-[9px] uppercase text-on-surface-variant block">Session Remaining</span>
+            <span id="session-remaining" class="text-base font-bold text-primary-container">10:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cadence Grid -->
+      <div class="bg-surface-container rounded-xl p-3 border border-surface-high flex flex-col gap-1.5">
+        <div class="flex justify-between items-center text-[10px] font-mono">
+          <span class="font-bold uppercase text-white">Interval Progression Grid</span>
+          <span class="text-secondary-container font-bold uppercase flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-secondary-container animate-pulse"></span>
+            Finale Alert
+          </span>
+        </div>
+        <div id="interval-grid" class="grid grid-cols-10 gap-1 w-full pt-1"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-4 gap-2 pt-1">
+        <button id="btn-timer-toggle" onclick="toggleTimer()" class="col-span-3 h-14 bg-primary-container active:scale-95 text-on-primary rounded-xl flex items-center justify-center gap-2 shadow-lg transition-transform">
+          <span id="btn-timer-icon" class="material-symbols-outlined text-[28px] font-bold">play_arrow</span>
+          <span id="btn-timer-text" class="text-base font-black uppercase tracking-wide">Start Drill</span>
+        </button>
+        <button onclick="skipInterval()" class="col-span-1 h-14 bg-surface-container active:bg-surface-high border border-surface-highest text-white rounded-xl flex flex-col items-center justify-center active:scale-95">
+          <span class="material-symbols-outlined text-[22px]">skip_next</span>
+          <span class="text-[8px] uppercase font-bold text-on-surface-variant font-mono">Skip</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="AudioEngine.playCue()" class="h-11 bg-surface-container active:bg-surface-high border border-surface-high rounded-lg text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5">
+          <span class="material-symbols-outlined text-[17px] text-primary-container">surround_sound</span>
+          <span>Test Cue</span>
+        </button>
+        <button onclick="resetTimer()" class="h-11 bg-surface-container active:bg-surface-high border border-surface-high rounded-lg text-secondary-container text-xs font-mono font-bold flex items-center justify-center gap-1.5">
+          <span class="material-symbols-outlined text-[17px]">restart_alt</span>
+          <span>Reset</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 2: FULLY CUSTOMIZABLE SETUP
+         ============================================== -->
+    <section id="tab-interval-setup" class="tab-pane hidden flex flex-col gap-3">
+      <h2 class="text-lg font-bold uppercase text-white">Full Drill Customization</h2>
+
+      <!-- Card 1: Total Workout Time -->
+      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-2">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold uppercase text-white">Total Workout Duration</span>
+          <span class="text-[10px] font-mono text-primary-container uppercase font-bold">MIN : SEC</span>
+        </div>
+        <div class="flex items-center gap-3 justify-center py-2">
+          <div class="flex flex-col items-center">
+            <input id="custom-total-min" type="number" min="0" max="180" value="10" onchange="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-white focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1">Minutes</span>
+          </div>
+          <span class="text-3xl font-bold text-on-surface-variant">:</span>
+          <div class="flex flex-col items-center">
+            <input id="custom-total-sec" type="number" min="0" max="59" value="0" onchange="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-white focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1">Seconds</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Interval Work & Rest Duration -->
+      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold uppercase text-white">Interval Duration (Work)</span>
+          <span class="text-[10px] font-mono text-primary-container font-bold" id="calculated-intervals-badge">10 INTERVALS</span>
+        </div>
+        <div class="flex items-center gap-3 justify-center py-1">
+          <div class="flex flex-col items-center">
+            <input id="custom-work-min" type="number" min="0" max="59" value="1" onchange="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-primary-container focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1">Minutes</span>
+          </div>
+          <span class="text-3xl font-bold text-on-surface-variant">:</span>
+          <div class="flex flex-col items-center">
+            <input id="custom-work-sec" type="number" min="0" max="59" value="0" onchange="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-primary-container focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1">Seconds</span>
+          </div>
+        </div>
+
+        <!-- Optional Rest Interval -->
+        <div class="pt-2 border-t border-surface-high flex items-center justify-between">
+          <div class="flex flex-col">
+            <span class="text-xs font-bold text-white">Rest Interval (Optional)</span>
+            <span class="text-[10px] text-on-surface-variant">Pause countdown between sets</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <input id="custom-rest-sec" type="number" min="0" max="180" value="0" onchange="syncCustomTimes()" class="w-16 h-10 bg-surface-high border border-surface-highest rounded text-center font-mono font-bold text-secondary-container outline-none"/>
+            <span class="text-xs font-mono text-on-surface-variant">SEC</span>
+          </div>
+        </div>
+
+        <!-- 3-2-1 Audio Countdown Lead-in -->
+        <div class="pt-2 border-t border-surface-high flex items-center justify-between">
+          <div class="flex flex-col">
+            <span class="text-xs font-bold text-white">3-2-1 Beep Countdown</span>
+            <span class="text-[10px] text-on-surface-variant">Acoustic lead-in beeps before booms</span>
+          </div>
+          <input id="chk-countdown-beeps" type="checkbox" checked class="w-5 h-5 accent-primary-container cursor-pointer"/>
+        </div>
+      </div>
+
+      <button onclick="saveAndStartWorkout()" class="w-full h-12 bg-primary-container active:scale-95 text-on-primary rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 shadow-lg">
+        <span class="material-symbols-outlined text-[20px]">check_circle</span>
+        <span>Apply Setup & Start Drill</span>
+      </button>
+    </section>
+
+    <!-- ==============================================
+         TAB 3: SOUND CUES
+         ============================================== -->
+    <section id="tab-sound-cues" class="tab-pane hidden flex flex-col gap-3">
+      <h2 class="text-lg font-bold uppercase text-white">Sound Customization</h2>
+      <div class="bg-surface-container rounded-xl p-3.5 border border-surface-high flex flex-col gap-2">
+        <span class="text-[10px] font-mono uppercase text-on-surface-variant font-bold">Interval Transition Cue</span>
+
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="double-stadium" checked class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
+            <span class="text-xs font-mono font-bold text-white">Double Stadium Boom (2× 808)</span>
+          </div>
+          <button onclick="event.preventDefault(); AudioEngine.triggerBoom(0); AudioEngine.triggerBoom(0.25);" class="text-primary-container text-xs font-mono font-bold uppercase">Test</button>
+        </label>
+
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="whistle" class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
+            <span class="text-xs font-mono font-bold text-white">Referee Whistle Blast</span>
+          </div>
+          <button onclick="event.preventDefault(); AudioEngine.playWhistle();" class="text-primary-container text-xs font-mono font-bold uppercase">Test</button>
+        </label>
+
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="starter-gun" class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
+            <span class="text-xs font-mono font-bold text-white">Track Starter Gun Crack</span>
+          </div>
+          <button onclick="event.preventDefault(); AudioEngine.playGunshot();" class="text-primary-container text-xs font-mono font-bold uppercase">Test</button>
+        </label>
+
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="boxing-bell" class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
+            <span class="text-xs font-mono font-bold text-white">Boxing Ring Brass Bell</span>
+          </div>
+          <button onclick="event.preventDefault(); AudioEngine.playBell();" class="text-primary-container text-xs font-mono font-bold uppercase">Test</button>
+        </label>
+      </div>
+
+      <button onclick="AudioEngine.playFinale()" class="w-full h-12 bg-secondary-container active:scale-95 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow">
+        <span class="material-symbols-outlined text-[20px]">campaign</span>
+        <span>Test 5× Thunder Climax Alarm</span>
+      </button>
+    </section>
+
+    <!-- ==============================================
+         TAB 4: ROUTINES
+         ============================================== -->
+    <section id="tab-routines" class="tab-pane hidden flex flex-col gap-2.5">
+      <h2 class="text-lg font-bold uppercase text-white">Training Protocols</h2>
+      <div class="flex flex-col gap-2">
+        <div class="p-3 bg-surface-container rounded-xl border border-surface-high flex items-center justify-between">
+          <div>
+            <span class="text-xs uppercase font-bold text-white block">Track 400m Repeats</span>
+            <span class="text-[10px] font-mono text-primary-container">12m Total • 75s Splits</span>
+          </div>
+          <button onclick="loadProtocol(12, 0, 1, 15, 'starter-gun')" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md">Load</button>
+        </div>
+
+        <div class="p-3 bg-surface-container rounded-xl border border-surface-high flex items-center justify-between">
+          <div>
+            <span class="text-xs uppercase font-bold text-white block">HIIT Tabata 20/10</span>
+            <span class="text-[10px] font-mono text-secondary-container">4m Total • 20s Work / 10s Rest</span>
+          </div>
+          <button onclick="loadProtocol(4, 0, 0, 20, 'whistle', 10)" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md">Load</button>
+        </div>
+
+        <div class="p-3 bg-surface-container rounded-xl border border-surface-high flex items-center justify-between">
+          <div>
+            <span class="text-xs uppercase font-bold text-white block">Boxing Jump Rope</span>
+            <span class="text-[10px] font-mono text-primary-container">9m Total • 3m Rounds</span>
+          </div>
+          <button onclick="loadProtocol(9, 0, 3, 0, 'boxing-bell')" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md">Load</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 5: QR CODE & INSTALL HUB
+         ============================================== -->
+    <section id="tab-install-hub" class="tab-pane hidden flex flex-col gap-3.5">
+      <div>
+        <span class="text-[10px] font-mono uppercase text-primary-container font-bold">Device Installation</span>
+        <h2 class="text-xl font-bold uppercase text-white">Scan & Download Hub</h2>
+        <p class="text-xs text-on-surface-variant">Install BoomPace directly without app-store logins.</p>
+      </div>
+
+      <!-- Scannable QR Code -->
+      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col items-center shadow-lg">
+        <span class="text-[10px] font-mono uppercase text-on-surface-variant font-bold mb-2">Scan with Any Mobile Camera</span>
+        
+        <div class="p-3 bg-white rounded-xl shadow flex items-center justify-center">
+          <img id="qr-img" class="w-48 h-48 rounded object-contain" alt="QR Code"/>
+        </div>
+
+        <!-- URL Input to easily change the QR code to your live URL -->
+        <div class="w-full mt-3 flex items-center gap-1.5 bg-surface-low p-2 rounded-lg border border-surface-high">
+          <span class="material-symbols-outlined text-primary-container text-[16px]">link</span>
+          <input id="qr-url-box" type="text" oninput="updateQRImage(this.value)" class="w-full bg-transparent text-[10px] font-mono text-white outline-none" placeholder="Enter your live app URL..."/>
+          <button onclick="copyCurrentURL()" class="px-2 py-1 bg-surface-high rounded text-[10px] font-mono font-bold uppercase hover:text-primary-container">Copy</button>
+        </div>
+        <span class="text-[9px] text-on-surface-variant mt-1.5">Tip: Paste your hosted link above to generate a shareable QR for athletes.</span>
+      </div>
+
+      <!-- Device Step by Step -->
+      <div class="bg-surface-low p-3.5 rounded-xl border border-surface-high text-xs space-y-2">
+        <span class="text-[10px] font-mono uppercase text-primary-container font-bold block">How to Install Properly:</span>
+        <p>• <strong>Android:</strong> Open in <strong>Google Chrome</strong> (do NOT use "HTML Viewer"). Tap the three dots (⋮) $\rightarrow$ select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</p>
+        <p>• <strong>iPhone:</strong> Open the link in <strong>Safari</strong>. Tap the <strong>Share</strong> icon (square with arrow) $\rightarrow$ tap <strong>"Add to Home Screen"</strong>.</p>
+        <p>• <strong>Free Web Hosting:</strong> Drag this file into <strong>tiiny.host</strong> or <strong>netlify.com/drop</strong> to get a permanent link where "Add to Home Screen" works automatically.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="fixed bottom-0 w-full z-40 pb-safe bg-surface/95 backdrop-blur-md border-t border-surface-high shadow-2xl">
+    <div class="flex justify-around items-center h-15 px-2">
+      <button onclick="navigateTab('active-workout')" data-tab="active-workout" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-primary-container">
+        <span class="material-symbols-outlined text-[22px]">timer</span>
+        <span class="text-[9px] uppercase font-bold font-mono">Workout</span>
+      </button>
+
+      <button onclick="navigateTab('interval-setup')" data-tab="interval-setup" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant">
+        <span class="material-symbols-outlined text-[22px]">tune</span>
+        <span class="text-[9px] uppercase font-bold font-mono">Setup</span>
+      </button>
+
+      <button onclick="navigateTab('sound-cues')" data-tab="sound-cues" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant">
+        <span class="material-symbols-outlined text-[22px]">graphic_eq</span>
+        <span class="text-[9px] uppercase font-bold font-mono">Sounds</span>
+      </button>
+
+      <button onclick="navigateTab('routines')" data-tab="routines" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant">
+        <span class="material-symbols-outlined text-[22px]">bookmark</span>
+        <span class="text-[9px] uppercase font-bold font-mono">Presets</span>
+      </button>
+
+      <button onclick="navigateTab('install-hub')" data-tab="install-hub" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant">
+        <span class="material-symbols-outlined text-[22px]">qr_code_scanner</span>
+        <span class="text-[9px] uppercase font-bold font-mono">Install</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Global Toast -->
+  <div id="toast" class="fixed bottom-20 left-4 right-4 z-50 transform translate-y-32 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="flex items-center gap-2 p-3 bg-surface-highest border border-primary-container/40 text-white rounded-xl shadow-2xl">
+      <span id="toast-icon" class="material-symbols-outlined text-primary-container text-[20px]">check_circle</span>
+      <span id="toast-text" class="text-xs font-bold font-mono flex-1">Ready</span>
+    </div>
+  </div>
+
+  <!-- JavaScript Engine -->
+  <script>
+    const state = {
+      totalSec: 600,
+      workSec: 60,
+      restSec: 0,
+      currentInterval: 1,
+      isRestPhase: false,
+      intervalRemaining: 60,
+      sessionElapsed: 0,
+      isRunning: false,
+      loudMode: true,
+      cueTone: 'double-stadium',
+      timerId: null
+    };
+
+    /* Web Audio Synthesizer */
+    const AudioEngine = {
+      ctx: null,
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+
+      triggerBoom(delay = 0) {
+        this.init();
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(140, t);
+        osc.frequency.exponentialRampToValueAtTime(36, t + 0.35);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(280, t);
+
+        const peak = state.loudMode ? 1.4 : 0.8;
+        gain.gain.setValueAtTime(peak, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.6);
+      },
+
+      playBeep(freq = 880, dur = 0.1) {
+        this.init();
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + dur + 0.05);
+      },
+
+      playCue() {
+        this.init();
+        if (state.cueTone === 'starter-gun') return this.playGunshot();
+        if (state.cueTone === 'whistle') return this.playWhistle();
+        if (state.cueTone === 'boxing-bell') return this.playBell();
+
+        this.triggerBoom(0);
+        this.triggerBoom(0.25);
+        if (navigator.vibrate) navigator.vibrate([100, 60, 100]);
+      },
+
+      playGunshot() {
+        this.init();
+        if (!this.ctx) return;
+        [0, 0.2].forEach(delay => {
+          const t = this.ctx.currentTime + delay;
+          const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.1, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(1400, t);
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(1.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(t);
+        });
+      },
+
+      playWhistle() {
+        this.init();
+        if (!this.ctx) return;
+        [0, 0.2].forEach(d => {
+          const t = this.ctx.currentTime + d;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(3000, t);
+          gain.gain.setValueAtTime(0.6, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.15);
+        });
+      },
+
+      playBell() {
+        this.init();
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+        [440, 880, 1320].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.4 / (idx + 1), t);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 1.3);
+        });
+      },
+
+      playFinale() {
+        this.init();
+        [0, 0.28, 0.56, 0.84, 1.15].forEach(d => this.triggerBoom(d));
+        if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 300]);
+        const f = document.getElementById('flash-overlay');
+        if (f) {
+          f.classList.add('strobe-active');
+          setTimeout(() => f.classList.remove('strobe-active'), 1400);
+        }
+      }
+    };
+
+    /* Timing Calculation */
+    function getTotalIntervals() {
+      const cycle = state.workSec + state.restSec;
+      return Math.max(1, Math.floor(state.totalSec / cycle));
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function syncCustomTimes() {
+      const tMin = parseInt(document.getElementById('custom-total-min').value, 10) || 0;
+      const tSec = parseInt(document.getElementById('custom-total-sec').value, 10) || 0;
+      const wMin = parseInt(document.getElementById('custom-work-min').value, 10) || 0;
+      const wSec = parseInt(document.getElementById('custom-work-sec').value, 10) || 0;
+      const rSec = parseInt(document.getElementById('custom-rest-sec').value, 10) || 0;
+
+      state.totalSec = Math.max(10, (tMin * 60) + tSec);
+      state.workSec = Math.max(5, (wMin * 60) + wSec);
+      state.restSec = Math.max(0, rSec);
+
+      const count = getTotalIntervals();
+      const badge = document.getElementById('calculated-intervals-badge');
+      if (badge) badge.textContent = `${count} INTERVALS`;
+    }
+
+    function saveAndStartWorkout() {
+      syncCustomTimes();
+      resetTimer();
+      navigateTab('active-workout');
+      toggleTimer();
+      showToast('Drill applied & started!', 'play_circle');
+    }
+
+    function loadProtocol(tMin, tSec, wMin, wSec, tone, rSec = 0) {
+      document.getElementById('custom-total-min').value = tMin;
+      document.getElementById('custom-total-sec').value = tSec;
+      document.getElementById('custom-work-min').value = wMin;
+      document.getElementById('custom-work-sec').value = wSec;
+      document.getElementById('custom-rest-sec').value = rSec;
+      state.cueTone = tone;
+      saveAndStartWorkout();
+    }
+
+    function updateHUD() {
+      const total = getTotalIntervals();
+      document.getElementById('interval-digits').textContent = formatTime(state.intervalRemaining);
+      document.getElementById('session-elapsed').textContent = formatTime(state.sessionElapsed);
+      document.getElementById('session-remaining').textContent = formatTime(Math.max(0, state.totalSec - state.sessionElapsed));
+      document.getElementById('hud-total-cap').textContent = `${formatTime(state.totalSec)} CAP`;
+      document.getElementById('hud-interval-badge').textContent = `INTERVAL ${state.currentInterval} OF ${total}`;
+
+      const phaseLabel = document.getElementById('hud-phase-label');
+      if (phaseLabel) {
+        phaseLabel.textContent = state.isRestPhase ? 'REST PHASE' : 'WORK PHASE';
+        phaseLabel.className = state.isRestPhase ? 'text-[10px] uppercase font-mono font-bold text-secondary-container' : 'text-[10px] uppercase font-mono font-bold text-on-surface-variant';
+      }
+
+      const activeCycle = state.isRestPhase ? state.restSec : state.workSec;
+      const intRing = document.getElementById('interval-ring');
+      if (intRing) {
+        intRing.style.strokeDashoffset = 464.95 * (1 - (state.intervalRemaining / activeCycle));
+        intRing.setAttribute('stroke', state.isRestPhase ? '#ff571a' : '#c3f400');
+      }
+
+      const sessRing = document.getElementById('session-ring');
+      if (sessRing) {
+        sessRing.style.strokeDashoffset = 565.48 * (1 - (state.sessionElapsed / state.totalSec));
+      }
+    }
+
+    function renderGrid() {
+      const container = document.getElementById('interval-grid');
+      if (!container) return;
+      container.innerHTML = '';
+      const total = getTotalIntervals();
+
+      for (let i = 1; i <= total; i++) {
+        const el = document.createElement('div');
+        el.className = 'h-8 rounded flex items-center justify-center font-mono text-[10px] font-bold';
+        if (i < state.currentInterval) {
+          el.className += ' bg-primary-container text-on-primary';
+          el.textContent = '✓';
+        } else if (i === state.currentInterval) {
+          el.className += ' bg-surface-highest text-white border border-primary-container';
+          el.textContent = i;
+        } else if (i === total) {
+          el.className += ' bg-secondary-container text-white';
+          el.textContent = i;
+        } else {
+          el.className += ' bg-surface-high text-on-surface-variant';
+          el.textContent = i;
+        }
+        container.appendChild(el);
+      }
+    }
+
+    function onTick() {
+      if (!state.isRunning) return;
+      state.sessionElapsed++;
+      state.intervalRemaining--;
+
+      // 3-2-1 Audio Beep Lead-in
+      const beepsEnabled = document.getElementById('chk-countdown-beeps')?.checked;
+      if (beepsEnabled && state.intervalRemaining <= 3 && state.intervalRemaining > 0) {
+        AudioEngine.playBeep(state.intervalRemaining === 1 ? 1200 : 800, 0.08);
+      }
+
+      if (state.intervalRemaining <= 0) {
+        // Toggle Work / Rest
+        if (state.restSec > 0 && !state.isRestPhase) {
+          state.isRestPhase = true;
+          state.intervalRemaining = state.restSec;
+          AudioEngine.playBeep(440, 0.3);
+          showToast('Rest Phase Started', 'snooze');
+        } else {
+          state.isRestPhase = false;
+          if (state.currentInterval >= getTotalIntervals() || state.sessionElapsed >= state.totalSec) {
+            state.isRunning = false;
+            clearInterval(state.timerId);
+            state.timerId = null;
+            AudioEngine.playFinale();
+            showToast('WORKOUT FINISHED!', 'emoji_events');
+            document.getElementById('btn-timer-text').textContent = 'Restart Drill';
+            document.getElementById('btn-timer-icon').textContent = 'play_arrow';
+            return;
+          } else {
+            state.currentInterval++;
+            state.intervalRemaining = state.workSec;
+            AudioEngine.playCue();
+            renderGrid();
+          }
+        }
+      }
+      updateHUD();
+    }
+
+    function toggleTimer() {
+      AudioEngine.init();
+      state.isRunning = !state.isRunning;
+      const text = document.getElementById('btn-timer-text');
+      const icon = document.getElementById('btn-timer-icon');
+
+      if (state.isRunning) {
+        if (!state.timerId) state.timerId = setInterval(onTick, 1000);
+        if (text) text.textContent = 'Pause Drill';
+        if (icon) icon.textContent = 'pause';
+      } else {
+        if (text) text.textContent = 'Resume Drill';
+        if (icon) icon.textContent = 'play_arrow';
+      }
+    }
+
+    function skipInterval() {
+      AudioEngine.init();
+      if (state.currentInterval < getTotalIntervals()) {
+        state.isRestPhase = false;
+        state.currentInterval++;
+        state.intervalRemaining = state.workSec;
+        AudioEngine.playCue();
+        renderGrid();
+        updateHUD();
+      } else {
+        AudioEngine.playFinale();
+      }
+    }
+
+    function resetTimer() {
+      state.isRunning = false;
+      if (state.timerId) clearInterval(state.timerId);
+      state.timerId = null;
+      state.currentInterval = 1;
+      state.isRestPhase = false;
+      state.sessionElapsed = 0;
+      state.intervalRemaining = state.workSec;
+      document.getElementById('btn-timer-text').textContent = 'Start Drill';
+      document.getElementById('btn-timer-icon').textContent = 'play_arrow';
+      renderGrid();
+      updateHUD();
+    }
+
+    function toggleLoudMode() {
+      state.loudMode = !state.loudMode;
+      document.getElementById('loud-text').textContent = state.loudMode ? '110dB LOUD' : 'NORMAL dB';
+      showToast(state.loudMode ? '110dB Loud Mode ON' : 'Normal Audio', 'bolt');
+    }
+
+    function navigateTab(tabKey) {
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      const target = document.getElementById(`tab-${tabKey}`);
+      if (target) target.classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        const isMatch = btn.getAttribute('data-tab') === tabKey;
+        btn.classList.toggle('text-primary-container', isMatch);
+        btn.classList.toggle('text-on-surface-variant', !isMatch);
+      });
+
+      if (tabKey === 'install-hub') initQR();
+    }
+
+    function initQR() {
+      const urlBox = document.getElementById('qr-url-box');
+      let current = window.location.href;
+      if (current.includes('cdpn.io')) {
+        current = document.referrer || current;
+      }
+      if (urlBox && !urlBox.value) {
+        urlBox.value = current;
+      }
+      updateQRImage(urlBox ? urlBox.value : current);
+    }
+
+    function updateQRImage(url) {
+      const img = document.getElementById('qr-img');
+      if (img && url) {
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+      }
+    }
+
+    function copyCurrentURL() {
+      const url = document.getElementById('qr-url-box')?.value || window.location.href;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => showToast('Link copied!', 'done_all'));
+      }
+    }
+
+    function showToast(msg, icon = 'check_circle') {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-text').textContent = msg;
+      document.getElementById('toast-icon').textContent = icon;
+      t.classList.remove('translate-y-32', 'opacity-0');
+      t.classList.add('translate-y-0', 'opacity-100');
+      clearTimeout(state.toastTimer);
+      state.toastTimer = setTimeout(() => {
+        t.classList.remove('translate-y-0', 'opacity-100');
+        t.classList.add('translate-y-32', 'opacity-0');
+      }, 2400);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      syncCustomTimes();
+      resetTimer();
+      initQR();
+      document.body.addEventListener('touchstart', () => AudioEngine.init(), { once: true });
+      document.body.addEventListener('click', () => AudioEngine.init(), { once: true });
+    });
+  </script>
+</body>
+</html>
