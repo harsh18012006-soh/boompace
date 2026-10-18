@@ -58,20 +58,66 @@
       -webkit-user-select: none;
       overflow-x: hidden;
     }
-    input[type=number]::-webkit-inner-spin-button, 
-    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type=number] { -moz-appearance: textfield; }
     .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); }
     .pt-safe { padding-top: max(env(safe-area-inset-top, 0px), 8px); }
     @keyframes strobe { 0%, 100% { opacity: 0; } 50% { opacity: 0.85; } }
     .strobe-flash { animation: strobe 0.35s ease-in-out 4; }
+
+    /* Tactile Roller Drum Wheel Styles */
+    .roller-wheel-box {
+      position: relative;
+      height: 132px;
+      overflow: hidden;
+      border-radius: 8px;
+      background-color: #181c22;
+      border: 1px solid #31353c;
+    }
+    .roller-wheel {
+      height: 100%;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      padding-top: 44px;
+      padding-bottom: 44px;
+    }
+    .roller-wheel::-webkit-scrollbar { display: none; }
+    .roller-item {
+      height: 44px;
+      scroll-snap-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: #8e9379;
+      transition: color 0.15s ease, transform 0.15s ease;
+    }
+    .roller-item.active-item {
+      color: #c3f400;
+      font-size: 28px;
+      font-weight: 800;
+      transform: scale(1.1);
+    }
+    .roller-lens {
+      position: absolute;
+      top: 44px;
+      left: 0;
+      right: 0;
+      height: 44px;
+      pointer-events: none;
+      border-top: 1.5px solid rgba(195, 244, 0, 0.45);
+      border-bottom: 1.5px solid rgba(195, 244, 0, 0.45);
+      background: rgba(195, 244, 0, 0.08);
+    }
   </style>
 </head>
 
 <body class="bg-surface antialiased flex flex-col min-h-screen">
 
-  <!-- 100% Zero-Amplitude Audio Anchor (Keeps background audio alive without humming or buzzing) -->
-  <audio id="native-audio-anchor" loop preload="auto"></audio>
+  <!-- Foreground Background Audio Channel (Kept active throughout drill) -->
+  <audio id="native-audio-player" loop preload="auto"></audio>
 
   <!-- Flash Screen Strobe -->
   <div id="flash-overlay" class="fixed inset-0 pointer-events-none z-[100] bg-secondary-container opacity-0 transition-opacity"></div>
@@ -91,7 +137,7 @@
     <div class="flex items-center gap-2">
       <div id="lockscreen-pill" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-high border border-primary-container/30 text-primary-container text-[10px] font-mono font-bold">
         <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
-        <span id="lockscreen-text">READY</span>
+        <span id="lockscreen-text">AUTO-SAVED</span>
       </div>
       <button onclick="navigateTab('install-hub')" class="w-8 h-8 rounded-full bg-surface-high border border-surface-highest flex items-center justify-center text-white active:scale-90 transition-transform">
         <span class="material-symbols-outlined text-[18px]">qr_code_2</span>
@@ -99,7 +145,7 @@
     </div>
   </header>
 
-  <!-- Main View Container -->
+  <!-- Main View Area -->
   <main class="flex-1 flex flex-col w-full px-4 pt-3 pb-24 max-w-lg mx-auto">
 
     <!-- TAB 1: ACTIVE WORKOUT -->
@@ -145,7 +191,7 @@
 
       <div class="bg-surface-container rounded-xl p-3 border border-surface-high flex flex-col gap-1.5">
         <div class="flex justify-between items-center text-[10px] font-mono">
-          <span class="font-bold uppercase text-white">Interval Cadence Grid</span>
+          <span class="font-bold uppercase text-white">Interval Progression Grid</span>
           <span class="text-secondary-container font-bold uppercase flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-secondary-container animate-pulse"></span>
             Finale Alert
@@ -154,7 +200,7 @@
         <div id="interval-grid" class="grid grid-cols-10 gap-1 w-full pt-1"></div>
       </div>
 
-      <!-- Main Action Controls -->
+      <!-- Action Controls -->
       <div class="grid grid-cols-4 gap-2 pt-1">
         <button id="btn-timer-toggle" onclick="toggleTimer()" type="button" class="col-span-3 h-14 bg-primary-container active:scale-95 text-on-primary rounded-xl flex items-center justify-center gap-2 shadow-lg transition-transform cursor-pointer">
           <span id="btn-timer-icon" class="material-symbols-outlined text-[28px] font-bold">play_arrow</span>
@@ -178,42 +224,64 @@
       </div>
     </section>
 
-    <!-- TAB 2: SETUP -->
+    <!-- TAB 2: ROLLER WHEEL SETUP -->
     <section id="tab-interval-setup" class="tab-pane hidden flex flex-col gap-3">
-      <h2 class="text-lg font-bold uppercase text-white">Drill Calibration</h2>
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold uppercase text-white">Drill Calibration</h2>
+        <span class="text-[10px] font-mono text-primary-container uppercase font-bold">Tactile Rollers</span>
+      </div>
 
-      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-2">
+      <!-- Total Workout Roller -->
+      <div class="bg-surface-container rounded-xl p-3.5 border border-surface-high flex flex-col gap-2">
         <div class="flex justify-between items-center">
-          <span class="text-xs font-bold uppercase text-white">Total Workout Duration</span>
-          <span class="text-[10px] font-mono text-primary-container uppercase font-bold">MIN : SEC</span>
+          <span class="text-xs font-bold uppercase text-white">Total Workout Length</span>
+          <span id="badge-total-roller-readout" class="text-xs font-mono font-extrabold text-primary-container">10m 00s</span>
         </div>
-        <div class="flex items-center gap-3 justify-center py-2">
+
+        <div class="grid grid-cols-2 gap-3 py-1">
+          <!-- Minutes Column -->
           <div class="flex flex-col items-center">
-            <input id="custom-total-min" type="number" min="0" max="180" value="10" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-white focus:border-primary-container outline-none"/>
-            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Minutes</span>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mb-1 font-bold">Minutes (0 - 120)</span>
+            <div class="roller-wheel-box w-full">
+              <div id="roller-total-min" class="roller-wheel"></div>
+              <div class="roller-lens"></div>
+            </div>
           </div>
-          <span class="text-3xl font-bold text-on-surface-variant">:</span>
+          <!-- Seconds Column -->
           <div class="flex flex-col items-center">
-            <input id="custom-total-sec" type="number" min="0" max="59" value="0" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-white focus:border-primary-container outline-none"/>
-            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Seconds</span>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mb-1 font-bold">Seconds (00 - 55)</span>
+            <div class="roller-wheel-box w-full">
+              <div id="roller-total-sec" class="roller-wheel"></div>
+              <div class="roller-lens"></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-3">
+      <!-- Work Interval Roller -->
+      <div class="bg-surface-container rounded-xl p-3.5 border border-surface-high flex flex-col gap-2">
         <div class="flex justify-between items-center">
-          <span class="text-xs font-bold uppercase text-white">Interval Duration (Work)</span>
-          <span class="text-[10px] font-mono text-primary-container font-bold" id="calculated-intervals-badge">10 INTERVALS</span>
-        </div>
-        <div class="flex items-center gap-3 justify-center py-1">
-          <div class="flex flex-col items-center">
-            <input id="custom-work-min" type="number" min="0" max="59" value="1" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-primary-container focus:border-primary-container outline-none"/>
-            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Minutes</span>
+          <span class="text-xs font-bold uppercase text-white">Interval Work Duration</span>
+          <div class="flex items-center gap-2">
+            <span id="badge-work-roller-readout" class="text-xs font-mono font-extrabold text-primary-container">01m 00s</span>
+            <span id="calculated-intervals-badge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-high text-white font-bold">10 INTS</span>
           </div>
-          <span class="text-3xl font-bold text-on-surface-variant">:</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 py-1">
           <div class="flex flex-col items-center">
-            <input id="custom-work-sec" type="number" min="0" max="59" value="0" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-primary-container focus:border-primary-container outline-none"/>
-            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Seconds</span>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mb-1 font-bold">Minutes (0 - 30)</span>
+            <div class="roller-wheel-box w-full">
+              <div id="roller-work-min" class="roller-wheel"></div>
+              <div class="roller-lens"></div>
+            </div>
+          </div>
+          <div class="flex flex-col items-center">
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mb-1 font-bold">Seconds (05 - 55)</span>
+            <div class="roller-wheel-box w-full">
+              <div id="roller-work-sec" class="roller-wheel"></div>
+              <div class="roller-lens"></div>
+            </div>
           </div>
         </div>
 
@@ -223,7 +291,7 @@
             <span class="text-[10px] text-on-surface-variant">Pause countdown between sets</span>
           </div>
           <div class="flex items-center gap-1.5">
-            <input id="custom-rest-sec" type="number" min="0" max="180" value="0" oninput="syncCustomTimes()" class="w-16 h-10 bg-surface-high border border-surface-highest rounded text-center font-mono font-bold text-secondary-container outline-none"/>
+            <input id="custom-rest-sec" type="number" min="0" max="180" value="0" oninput="onSettingsChanged()" class="w-16 h-10 bg-surface-high border border-surface-highest rounded text-center font-mono font-bold text-secondary-container outline-none"/>
             <span class="text-xs font-mono text-on-surface-variant font-bold">SEC</span>
           </div>
         </div>
@@ -231,7 +299,7 @@
 
       <button onclick="saveAndStartWorkout()" type="button" class="w-full h-12 bg-primary-container active:scale-95 text-on-primary rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer">
         <span class="material-symbols-outlined text-[20px]">check_circle</span>
-        <span>Apply Setup & Start Drill</span>
+        <span>Save Settings & Start Drill</span>
       </button>
     </section>
 
@@ -270,7 +338,6 @@
         </div>
       </div>
 
-      <!-- 10 Sound Options -->
       <div class="bg-surface-container rounded-xl p-3.5 border border-surface-high flex flex-col gap-2">
         <span class="text-[10px] font-mono uppercase text-on-surface-variant font-bold">10 High-Decibel Sound Alternatives</span>
 
@@ -456,9 +523,13 @@
 
   <!-- JAVASCRIPT APPLICATION LOGIC -->
   <script>
+    const STORAGE_KEY = 'boompace_saved_profile_v2';
+
     const state = {
-      totalSec: 600,
-      workSec: 60,
+      totalMin: 10,
+      totalSec: 0,
+      workMin: 1,
+      workSec: 0,
       restSec: 0,
       currentInterval: 1,
       isRestPhase: false,
@@ -474,7 +545,147 @@
       toastTimer: null
     };
 
-    /* 1. In-Memory PCM WAV Synthesizer (10 Real Audio Profiles) */
+    /* 1. Persistent Storage Engine (Never resets to 10:00 unless chosen) */
+    function saveSettings() {
+      try {
+        const payload = {
+          totalMin: state.totalMin,
+          totalSec: state.totalSec,
+          workMin: state.workMin,
+          workSec: state.workSec,
+          restSec: state.restSec,
+          cueTone: state.cueTone,
+          volumeMultiplier: state.volumeMultiplier,
+          vibeIntensity: state.vibeIntensity
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch(e) {}
+    }
+
+    function loadSettings() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (typeof data.totalMin === 'number') state.totalMin = data.totalMin;
+          if (typeof data.totalSec === 'number') state.totalSec = data.totalSec;
+          if (typeof data.workMin === 'number') state.workMin = data.workMin;
+          if (typeof data.workSec === 'number') state.workSec = data.workSec;
+          if (typeof data.restSec === 'number') state.restSec = data.restSec;
+          if (data.cueTone) state.cueTone = data.cueTone;
+          if (typeof data.volumeMultiplier === 'number') state.volumeMultiplier = data.volumeMultiplier;
+          if (data.vibeIntensity) state.vibeIntensity = data.vibeIntensity;
+        }
+      } catch(e) {}
+    }
+
+    /* 2. Tactile Roller Wheel Component */
+    function buildRoller(containerId, min, max, step, currentVal, onSelect) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = '';
+
+      for (let i = min; i <= max; i += step) {
+        const item = document.createElement('div');
+        item.className = 'roller-item' + (i === currentVal ? ' active-item' : '');
+        item.textContent = String(i).padStart(2, '0');
+        item.setAttribute('data-val', i);
+        item.onclick = () => {
+          scrollRollerTo(containerId, i);
+        };
+        el.appendChild(item);
+      }
+
+      // Snap scroll listener
+      let scrollTimer = null;
+      el.onscroll = () => {
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(() => {
+          const itemHeight = 44;
+          const index = Math.round(el.scrollTop / itemHeight);
+          const items = el.querySelectorAll('.roller-item');
+          if (items[index]) {
+            items.forEach(it => it.classList.remove('active-item'));
+            items[index].classList.add('active-item');
+            const val = parseInt(items[index].getAttribute('data-val'), 10);
+            onSelect(val);
+          }
+        }, 60);
+      };
+
+      // Set initial scroll position
+      setTimeout(() => {
+        scrollRollerTo(containerId, currentVal);
+      }, 50);
+    }
+
+    function scrollRollerTo(containerId, value) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      const items = el.querySelectorAll('.roller-item');
+      items.forEach((it, idx) => {
+        if (parseInt(it.getAttribute('data-val'), 10) === value) {
+          el.scrollTop = idx * 44;
+          items.forEach(item => item.classList.remove('active-item'));
+          it.classList.add('active-item');
+        }
+      });
+    }
+
+    function initAllRollers() {
+      // Total Minutes Roller (0 to 120)
+      buildRoller('roller-total-min', 0, 120, 1, state.totalMin, (val) => {
+        state.totalMin = val;
+        onSettingsChanged();
+      });
+
+      // Total Seconds Roller (0 to 55, step 5)
+      buildRoller('roller-total-sec', 0, 55, 5, state.totalSec, (val) => {
+        state.totalSec = val;
+        onSettingsChanged();
+      });
+
+      // Work Minutes Roller (0 to 30)
+      buildRoller('roller-work-min', 0, 30, 1, state.workMin, (val) => {
+        state.workMin = val;
+        onSettingsChanged();
+      });
+
+      // Work Seconds Roller (5 to 55, step 5)
+      buildRoller('roller-work-sec', 5, 55, 5, state.workSec || 5, (val) => {
+        state.workSec = val;
+        onSettingsChanged();
+      });
+
+      const restInput = document.getElementById('custom-rest-sec');
+      if (restInput) restInput.value = state.restSec;
+
+      const volSlider = document.getElementById('vol-slider');
+      if (volSlider) volSlider.value = Math.round(state.volumeMultiplier * 100);
+      updateMasterVolume(Math.round(state.volumeMultiplier * 100));
+
+      const radio = document.querySelector(`input[name="cue-tone"][value="${state.cueTone}"]`);
+      if (radio) radio.checked = true;
+
+      setVibeIntensity(state.vibeIntensity, document.querySelector(`.vibe-btn[onclick*="${state.vibeIntensity}"]`) || document.querySelector('.vibe-btn'));
+    }
+
+    function onSettingsChanged() {
+      const restInput = document.getElementById('custom-rest-sec');
+      if (restInput) state.restSec = Math.max(0, parseInt(restInput.value || '0', 10));
+
+      // Readout updates
+      const totalReadout = document.getElementById('badge-total-roller-readout');
+      if (totalReadout) totalReadout.textContent = `${state.totalMin}m ${String(state.totalSec).padStart(2, '0')}s`;
+
+      const workReadout = document.getElementById('badge-work-roller-readout');
+      if (workReadout) workReadout.textContent = `${state.workMin}m ${String(state.workSec).padStart(2, '0')}s`;
+
+      saveSettings();
+      updateHUD();
+    }
+
+    /* 3. Real Audio Synthesizer (Zero-Amplitude Anchor + Locked Screen Playback) */
     function buildWav(sampleRate, samples) {
       const buffer = new ArrayBuffer(44 + samples.length * 2);
       const view = new DataView(buffer);
@@ -500,11 +711,12 @@
 
     const SoundVault = {
       audioUrls: {},
+      silentUrl: null,
 
       init() {
         const sr = 22050;
 
-        // 1. Double Stadium Boom (2 punchy 808 sub kicks)
+        // 1. Double Stadium Boom
         const boomSamples = new Float32Array(sr * 0.7);
         for (let i = 0; i < boomSamples.length; i++) {
           let t1 = i / sr;
@@ -636,26 +848,42 @@
         }
         this.audioUrls['finale'] = buildWav(sr, finaleSamples);
 
-        // TRUE 100% SILENCE for keep-alive anchor (ZERO sound, ZERO vibration)
-        const pureSilentSamples = new Float32Array(sr * 5); // 0 amplitude
-        const anchor = document.getElementById('native-audio-anchor');
-        if (anchor) {
-          anchor.src = buildWav(sr, pureSilentSamples);
+        // True Digital Silence (zero amplitude, no buzz, no vibration)
+        const pureSilentSamples = new Float32Array(sr * 2);
+        this.silentUrl = buildWav(sr, pureSilentSamples);
+
+        const player = document.getElementById('native-audio-player');
+        if (player) {
+          player.src = this.silentUrl;
         }
       },
 
+      // Reuses the ACTIVE foreground audio element so Android NEVER blocks it in lock screen!
       play(name) {
         const url = this.audioUrls[name] || this.audioUrls['stadium-boom'];
-        if (!url) return;
+        const player = document.getElementById('native-audio-player');
+        if (!player || !url) return;
+
         try {
-          const snd = new Audio(url);
-          snd.volume = Math.min(1.0, state.volumeMultiplier / 1.5);
-          snd.play().catch(() => {});
+          player.loop = false;
+          player.src = url;
+          player.currentTime = 0;
+          player.volume = Math.min(1.0, state.volumeMultiplier);
+          player.play().catch(() => {});
+
+          // When cue finishes, switch back to silent loop to maintain audio session
+          player.onended = () => {
+            if (state.isRunning) {
+              player.src = this.silentUrl;
+              player.loop = true;
+              player.play().catch(() => {});
+            }
+          };
         } catch(e) {}
       }
     };
 
-    /* 2. Isolated Web Worker Timer (Continues counting in locked pocket) */
+    /* 4. Isolated Web Worker Timer */
     function initWorkerTimer() {
       const workerBlobCode = `
         let timer = null;
@@ -682,7 +910,7 @@
       };
     }
 
-    /* 3. Screen Wake Lock */
+    /* 5. Screen Wake Lock */
     async function acquireWakeLock() {
       try {
         if ('wakeLock' in navigator) {
@@ -704,15 +932,19 @@
       }
     });
 
-    /* 4. Cross-Platform Vibration (Screen On + Screen Locked) */
+    /* 6. Rapid High-Energy Vibration */
     function getVibrationPattern() {
-      if (state.vibeIntensity === 'normal') return [200, 100, 200];
-      if (state.vibeIntensity === 'heavy') return [400, 100, 400, 100, 600];
-      return [750, 100, 750, 100, 1000]; // Max Earthquake
+      if (state.vibeIntensity === 'normal') {
+        return [220, 60, 220]; // 2 fast punchy pulses
+      }
+      if (state.vibeIntensity === 'heavy') {
+        return [300, 60, 300, 60, 450]; // 3 rapid heavy pulses
+      }
+      return [400, 60, 400, 60, 400, 60, 700]; // Max Earthquake rapid fire
     }
 
     function triggerAlertNow(soundName, notificationTitle) {
-      // 1. Play Sound
+      // 1. Play Sound through active background pipeline
       SoundVault.play(soundName);
 
       // 2. Hardware vibration when screen is ON
@@ -720,7 +952,7 @@
         navigator.vibrate(getVibrationPattern());
       }
 
-      // 3. Android System Notification Channel (Vibrates phone even when screen is locked)
+      // 3. Android System Notification Channel with rapid burst vibration pattern
       if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(reg => {
           reg.showNotification(notificationTitle || 'BoomPace Alert', {
@@ -739,8 +971,9 @@
       document.querySelectorAll('.vibe-btn').forEach(b => {
         b.className = 'vibe-btn py-2 rounded-lg border text-xs font-mono font-bold bg-surface-high border-surface-highest text-on-surface-variant';
       });
-      btn.className = 'vibe-btn active-vibe py-2 rounded-lg border text-xs font-mono font-black bg-surface-highest border-primary-container/40 text-primary-container';
+      if (btn) btn.className = 'vibe-btn active-vibe py-2 rounded-lg border text-xs font-mono font-black bg-surface-highest border-primary-container/40 text-primary-container';
       if (navigator.vibrate) navigator.vibrate(getVibrationPattern());
+      saveSettings();
       showToast(`Vibration: ${level.toUpperCase()}`, 'vibration');
     }
 
@@ -750,6 +983,7 @@
       if (lbl) {
         lbl.textContent = `${val}% ${val > 100 ? '(OVERDRIVE)' : ''}`;
       }
+      saveSettings();
     }
 
     function setSoundOption(val) {
@@ -759,13 +993,22 @@
         pill.textContent = val.toUpperCase().replace('-', ' ');
       }
       SoundVault.play(val);
+      saveSettings();
       showToast(`Sound: ${val.toUpperCase()}`, 'volume_up');
     }
 
-    /* 5. Drill Timer Logic (100% SILENT during countdown) */
+    /* 7. Drill Timing Calculation */
+    function getTotalWorkoutSec() {
+      return (state.totalMin * 60) + state.totalSec;
+    }
+
+    function getWorkIntervalSec() {
+      return (state.workMin * 60) + state.workSec;
+    }
+
     function getTotalIntervals() {
-      const cycle = state.workSec + state.restSec;
-      return Math.max(1, Math.floor(state.totalSec / cycle));
+      const cycle = getWorkIntervalSec() + state.restSec;
+      return Math.max(1, Math.floor(getTotalWorkoutSec() / cycle));
     }
 
     function formatTime(sec) {
@@ -775,51 +1018,33 @@
       return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
-    function syncCustomTimes() {
-      const tMin = parseInt(document.getElementById('custom-total-min')?.value || '10', 10);
-      const tSec = parseInt(document.getElementById('custom-total-sec')?.value || '0', 10);
-      const wMin = parseInt(document.getElementById('custom-work-min')?.value || '1', 10);
-      const wSec = parseInt(document.getElementById('custom-work-sec')?.value || '0', 10);
-      const rSec = parseInt(document.getElementById('custom-rest-sec')?.value || '0', 10);
-
-      state.totalSec = Math.max(10, ((isNaN(tMin)?10:tMin) * 60) + (isNaN(tSec)?0:tSec));
-      state.workSec = Math.max(5, ((isNaN(wMin)?1:wMin) * 60) + (isNaN(wSec)?0:wSec));
-      state.restSec = Math.max(0, isNaN(rSec)?0:rSec);
-
-      const count = getTotalIntervals();
-      const badge = document.getElementById('calculated-intervals-badge');
-      if (badge) badge.textContent = `${count} INTERVALS`;
-      updateHUD();
-    }
-
     function saveAndStartWorkout() {
-      syncCustomTimes();
+      saveSettings();
       resetTimer();
       navigateTab('active-workout');
       toggleTimer();
-      showToast('Drill applied & started!', 'play_circle');
+      showToast('Custom drill saved & started!', 'play_circle');
     }
 
     function loadProtocol(tMin, tSec, wMin, wSec, tone, rSec = 0) {
-      const elTMin = document.getElementById('custom-total-min');
-      const elTSec = document.getElementById('custom-total-sec');
-      const elWMin = document.getElementById('custom-work-min');
-      const elWSec = document.getElementById('custom-work-sec');
-      const elRSec = document.getElementById('custom-rest-sec');
-
-      if (elTMin) elTMin.value = tMin;
-      if (elTSec) elTSec.value = tSec;
-      if (elWMin) elWMin.value = wMin;
-      if (elWSec) elWSec.value = wSec;
-      if (elRSec) elRSec.value = rSec;
-
+      state.totalMin = tMin;
+      state.totalSec = tSec;
+      state.workMin = wMin;
+      state.workSec = wSec;
+      state.restSec = rSec;
       state.cueTone = tone;
-      setSoundOption(tone);
-      saveAndStartWorkout();
+
+      initAllRollers();
+      saveSettings();
+      resetTimer();
+      navigateTab('active-workout');
+      toggleTimer();
+      showToast('Loaded Preset Protocol', 'bolt');
     }
 
     function updateHUD() {
       const total = getTotalIntervals();
+      const totalSec = getTotalWorkoutSec();
       const digitsEl = document.getElementById('interval-digits');
       const elapsedEl = document.getElementById('session-elapsed');
       const remainingEl = document.getElementById('session-remaining');
@@ -828,8 +1053,8 @@
 
       if (digitsEl) digitsEl.textContent = formatTime(state.intervalRemaining);
       if (elapsedEl) elapsedEl.textContent = formatTime(state.sessionElapsed);
-      if (remainingEl) remainingEl.textContent = formatTime(Math.max(0, state.totalSec - state.sessionElapsed));
-      if (capEl) capEl.textContent = `${formatTime(state.totalSec)} CAP`;
+      if (remainingEl) remainingEl.textContent = formatTime(Math.max(0, totalSec - state.sessionElapsed));
+      if (capEl) capEl.textContent = `${formatTime(totalSec)} CAP`;
       if (badgeEl) badgeEl.textContent = `INTERVAL ${state.currentInterval} OF ${total}`;
 
       const phaseLabel = document.getElementById('hud-phase-label');
@@ -838,7 +1063,7 @@
         phaseLabel.className = state.isRestPhase ? 'text-[10px] uppercase font-mono font-bold text-secondary-container' : 'text-[10px] uppercase font-mono font-bold text-on-surface-variant';
       }
 
-      const activeCycle = state.isRestPhase ? state.restSec : state.workSec;
+      const activeCycle = state.isRestPhase ? state.restSec : getWorkIntervalSec();
       const intRing = document.getElementById('interval-ring');
       if (intRing && activeCycle > 0) {
         intRing.style.strokeDashoffset = 464.95 * (1 - (state.intervalRemaining / activeCycle));
@@ -846,8 +1071,8 @@
       }
 
       const sessRing = document.getElementById('session-ring');
-      if (sessRing && state.totalSec > 0) {
-        sessRing.style.strokeDashoffset = 565.48 * (1 - (state.sessionElapsed / state.totalSec));
+      if (sessRing && totalSec > 0) {
+        sessRing.style.strokeDashoffset = 565.48 * (1 - (state.sessionElapsed / totalSec));
       }
     }
 
@@ -877,7 +1102,7 @@
       }
     }
 
-    /* 6. Clock Tick: COMPLETELY SILENT while counting down */
+    /* 8. Clock Tick: COMPLETELY SILENT while counting down */
     function handleClockTick() {
       if (!state.isRunning) return;
 
@@ -886,7 +1111,7 @@
       state.sessionElapsed = realElapsed;
       state.intervalRemaining--;
 
-      // NO SOUNDS OR VIBRATIONS DURING NORMAL TICKING
+      // NO SOUNDS OR VIBRATIONS DURING NORMAL TICKING (TOTAL SILENCE)
 
       // TRIGGER ONLY ON INTERVAL REACHED (0:00)
       if (state.intervalRemaining <= 0) {
@@ -897,13 +1122,13 @@
           showToast('Rest Phase Started', 'snooze');
         } else {
           state.isRestPhase = false;
-          if (state.currentInterval >= getTotalIntervals() || state.sessionElapsed >= state.totalSec) {
+          if (state.currentInterval >= getTotalIntervals() || state.sessionElapsed >= getTotalWorkoutSec()) {
             // FINALE ALERT ONLY AT THE END
             state.isRunning = false;
             if (state.worker) state.worker.postMessage('STOP');
             triggerAlertNow('finale', 'Workout Finished! All sets complete!');
             releaseWakeLock();
-            pauseBgAudio();
+            stopBackgroundAudio();
             showToast('WORKOUT FINISHED!', 'emoji_events');
             const txt = document.getElementById('btn-timer-text');
             const icon = document.getElementById('btn-timer-icon');
@@ -918,7 +1143,7 @@
           } else {
             // INTERVAL TRANSITION ALERT ONLY
             state.currentInterval++;
-            state.intervalRemaining = state.workSec;
+            state.intervalRemaining = getWorkIntervalSec();
             triggerAlertNow(state.cueTone, `Interval ${state.currentInterval} Started`);
             renderGrid();
           }
@@ -927,14 +1152,20 @@
       updateHUD();
     }
 
-    function playBgAudio() {
-      const audio = document.getElementById('native-audio-anchor');
-      if (audio) audio.play().catch(() => {});
+    function startBackgroundAudio() {
+      const player = document.getElementById('native-audio-player');
+      if (player) {
+        player.src = SoundVault.silentUrl;
+        player.loop = true;
+        player.play().catch(() => {});
+      }
     }
 
-    function pauseBgAudio() {
-      const audio = document.getElementById('native-audio-anchor');
-      if (audio) audio.pause();
+    function stopBackgroundAudio() {
+      const player = document.getElementById('native-audio-player');
+      if (player) {
+        player.pause();
+      }
     }
 
     function toggleTimer() {
@@ -943,7 +1174,6 @@
       const icon = document.getElementById('btn-timer-icon');
 
       if (state.isRunning) {
-        // Request notification permission for lock-screen vibration
         if ('Notification' in window && Notification.permission === 'default') {
           Notification.requestPermission();
         }
@@ -953,7 +1183,7 @@
         if (text) text.textContent = 'Pause Drill';
         if (icon) icon.textContent = 'pause';
         acquireWakeLock();
-        playBgAudio();
+        startBackgroundAudio();
 
         if ('mediaSession' in navigator) {
           navigator.mediaSession.metadata = new MediaMetadata({
@@ -970,7 +1200,7 @@
         if (text) text.textContent = 'Resume Drill';
         if (icon) icon.textContent = 'play_arrow';
         releaseWakeLock();
-        pauseBgAudio();
+        stopBackgroundAudio();
       }
     }
 
@@ -978,7 +1208,7 @@
       if (state.currentInterval < getTotalIntervals()) {
         state.isRestPhase = false;
         state.currentInterval++;
-        state.intervalRemaining = state.workSec;
+        state.intervalRemaining = getWorkIntervalSec();
         triggerAlertNow(state.cueTone, `Skipped to Interval ${state.currentInterval}`);
         renderGrid();
         updateHUD();
@@ -987,15 +1217,16 @@
       }
     }
 
+    // Always resets to the USER'S saved settings!
     function resetTimer() {
       state.isRunning = false;
       if (state.worker) state.worker.postMessage('STOP');
       state.currentInterval = 1;
       state.isRestPhase = false;
       state.sessionElapsed = 0;
-      state.intervalRemaining = state.workSec;
+      state.intervalRemaining = getWorkIntervalSec();
       releaseWakeLock();
-      pauseBgAudio();
+      stopBackgroundAudio();
       const txt = document.getElementById('btn-timer-text');
       const icon = document.getElementById('btn-timer-icon');
       if (txt) txt.textContent = 'Start Drill';
@@ -1058,9 +1289,10 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
       SoundVault.init();
       initWorkerTimer();
-      syncCustomTimes();
+      initAllRollers();
       resetTimer();
       initQR();
     });
