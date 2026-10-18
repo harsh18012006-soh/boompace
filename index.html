@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#10141a"/>
   <title>BoomPace • Acoustic Interval Timer</title>
 
-  <!-- Clean Manifest Link (No raw text spill) -->
+  <!-- Clean Link to Manifest File -->
   <link rel="manifest" href="./manifest.json"/>
 
   <!-- Google Fonts & Material Symbols -->
@@ -47,7 +47,7 @@
     };
   </script>
 
-  <!-- Hardened CSS: Ensures the app works even offline -->
+  <!-- Protective Offline Styles -->
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -74,7 +74,7 @@
 
 <body class="bg-surface antialiased flex flex-col min-h-screen">
 
-  <!-- Strobe Flash Overlay (Final Climax) -->
+  <!-- Strobe Flash Screen (Finale Alarm) -->
   <div id="flash-overlay" class="fixed inset-0 pointer-events-none z-[100] bg-secondary-container opacity-0 transition-opacity"></div>
 
   <!-- Header -->
@@ -116,7 +116,7 @@
           <span id="hud-total-cap" class="bg-surface-container px-2 py-0.5 rounded border border-surface-high text-white font-bold">10:00 CAP</span>
         </div>
 
-        <!-- Radial Counter -->
+        <!-- Radial Countdown Dial -->
         <div class="relative w-60 h-60 flex items-center justify-center my-1">
           <svg class="w-full h-full -rotate-90" viewBox="0 0 200 200">
             <circle cx="100" cy="100" r="90" fill="none" stroke="#262a31" stroke-width="6"/>
@@ -834,7 +834,7 @@
       }, 2200);
     }
 
-    // Startup
+    // Initialize App
     window.addEventListener('DOMContentLoaded', () => {
       syncCustomTimes();
       resetTimer();
@@ -845,7 +845,7 @@
 
     // Register Service Worker
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js').catch(console.warn);
     }
   </script>
 </body>
