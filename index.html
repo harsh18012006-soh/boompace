@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
@@ -8,12 +8,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="BoomPace"/>
   <meta name="theme-color" content="#10141a"/>
-  <title>BoomPace • Custom Sports Interval Timer</title>
+  <title>BoomPace • Acoustic Interval Timer</title>
 
-  <!-- PWA Manifest Data URI -->
-  <link rel="manifest" href="./manifest.json"/> href='data:application/manifest+json,{"name":"BoomPace Timer","short_name":"BoomPace","start_url":".","display":"standalone","background_color":"#10141a","theme_color":"#10141a"}'/>
+  <!-- Clean Manifest Link (No raw text spill) -->
+  <link rel="manifest" href="./manifest.json"/>
 
-  <!-- Fonts & Icons -->
+  <!-- Google Fonts & Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@600;700;800&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet"/>
@@ -32,7 +32,6 @@
             "surface-container": "#1c2026",
             "surface-high": "#262a31",
             "surface-highest": "#31353c",
-            "primary": "#ffffff",
             "primary-container": "#c3f400",
             "on-primary": "#161e00",
             "secondary-container": "#ff571a",
@@ -48,9 +47,12 @@
     };
   </script>
 
-  <!-- Offline Fallback Styles (Protects against viewer errors) -->
+  <!-- Hardened CSS: Ensures the app works even offline -->
   <style>
-    body {
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      width: 100%;
+      height: 100%;
       margin: 0;
       padding: 0;
       background-color: #10141a;
@@ -58,24 +60,27 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       user-select: none;
       -webkit-user-select: none;
+      overflow-x: hidden;
     }
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
     .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); }
+    .pt-safe { padding-top: max(env(safe-area-inset-top, 0px), 8px); }
     @keyframes strobe { 0%, 100% { opacity: 0; } 50% { opacity: 0.85; } }
-    .strobe-active { animation: strobe 0.4s ease-in-out 3; }
+    .strobe-flash { animation: strobe 0.35s ease-in-out 4; }
   </style>
 </head>
 
 <body class="bg-surface antialiased flex flex-col min-h-screen">
 
+  <!-- Strobe Flash Overlay (Final Climax) -->
   <div id="flash-overlay" class="fixed inset-0 pointer-events-none z-[100] bg-secondary-container opacity-0 transition-opacity"></div>
 
   <!-- Header -->
-  <header class="w-full z-40 bg-surface/95 backdrop-blur-md border-b border-surface-high px-4 py-3 flex items-center justify-between">
+  <header class="w-full z-40 bg-surface/95 backdrop-blur-md border-b border-surface-high px-4 py-3 flex items-center justify-between sticky top-0 pt-safe">
     <div class="flex items-center gap-2 cursor-pointer" onclick="navigateTab('active-workout')">
-      <div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center font-bold text-on-primary text-sm shadow">
+      <div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center font-black text-on-primary text-sm shadow">
         BP
       </div>
       <div>
@@ -85,11 +90,11 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <button onclick="toggleLoudMode()" id="loud-btn" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-high border border-primary-container/30 text-primary-container text-[10px] font-mono font-bold active:scale-95">
+      <button onclick="toggleLoudMode()" id="loud-btn" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-high border border-primary-container/30 text-primary-container text-[10px] font-mono font-bold active:scale-95 transition-transform">
         <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
         <span id="loud-text">110dB LOUD</span>
       </button>
-      <button onclick="navigateTab('install-hub')" class="w-8 h-8 rounded-full bg-surface-high border border-surface-highest flex items-center justify-center text-white active:scale-90" title="QR & Install">
+      <button onclick="navigateTab('install-hub')" class="w-8 h-8 rounded-full bg-surface-high border border-surface-highest flex items-center justify-center text-white active:scale-90 transition-transform" title="QR & Share">
         <span class="material-symbols-outlined text-[18px]">qr_code_2</span>
       </button>
     </div>
@@ -132,11 +137,11 @@
 
         <div class="w-full grid grid-cols-2 gap-2 bg-surface-container rounded-lg p-2.5 border border-surface-high text-xs font-mono">
           <div>
-            <span class="text-[9px] uppercase text-on-surface-variant block">Session Elapsed</span>
+            <span class="text-[9px] uppercase text-on-surface-variant block font-bold">Session Elapsed</span>
             <span id="session-elapsed" class="text-base font-bold text-white">00:00</span>
           </div>
           <div class="text-right">
-            <span class="text-[9px] uppercase text-on-surface-variant block">Session Remaining</span>
+            <span class="text-[9px] uppercase text-on-surface-variant block font-bold">Session Remaining</span>
             <span id="session-remaining" class="text-base font-bold text-primary-container">10:00</span>
           </div>
         </div>
@@ -156,22 +161,22 @@
 
       <!-- Action Buttons -->
       <div class="grid grid-cols-4 gap-2 pt-1">
-        <button id="btn-timer-toggle" onclick="toggleTimer()" class="col-span-3 h-14 bg-primary-container active:scale-95 text-on-primary rounded-xl flex items-center justify-center gap-2 shadow-lg transition-transform">
+        <button id="btn-timer-toggle" onclick="toggleTimer()" type="button" class="col-span-3 h-14 bg-primary-container active:scale-95 text-on-primary rounded-xl flex items-center justify-center gap-2 shadow-lg transition-transform cursor-pointer">
           <span id="btn-timer-icon" class="material-symbols-outlined text-[28px] font-bold">play_arrow</span>
           <span id="btn-timer-text" class="text-base font-black uppercase tracking-wide">Start Drill</span>
         </button>
-        <button onclick="skipInterval()" class="col-span-1 h-14 bg-surface-container active:bg-surface-high border border-surface-highest text-white rounded-xl flex flex-col items-center justify-center active:scale-95">
+        <button onclick="skipInterval()" type="button" class="col-span-1 h-14 bg-surface-container active:bg-surface-high border border-surface-highest text-white rounded-xl flex flex-col items-center justify-center active:scale-95 cursor-pointer">
           <span class="material-symbols-outlined text-[22px]">skip_next</span>
           <span class="text-[8px] uppercase font-bold text-on-surface-variant font-mono">Skip</span>
         </button>
       </div>
 
       <div class="grid grid-cols-2 gap-2">
-        <button onclick="AudioEngine.playCue()" class="h-11 bg-surface-container active:bg-surface-high border border-surface-high rounded-lg text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5">
+        <button onclick="AudioEngine.playCue()" type="button" class="h-11 bg-surface-container active:bg-surface-high border border-surface-high rounded-lg text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
           <span class="material-symbols-outlined text-[17px] text-primary-container">surround_sound</span>
           <span>Test Cue</span>
         </button>
-        <button onclick="resetTimer()" class="h-11 bg-surface-container active:bg-surface-high border border-surface-high rounded-lg text-secondary-container text-xs font-mono font-bold flex items-center justify-center gap-1.5">
+        <button onclick="resetTimer()" type="button" class="h-11 bg-surface-container active:bg-surface-high border border-surface-high rounded-lg text-secondary-container text-xs font-mono font-bold flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
           <span class="material-symbols-outlined text-[17px]">restart_alt</span>
           <span>Reset</span>
         </button>
@@ -184,7 +189,7 @@
     <section id="tab-interval-setup" class="tab-pane hidden flex flex-col gap-3">
       <h2 class="text-lg font-bold uppercase text-white">Full Drill Customization</h2>
 
-      <!-- Card 1: Total Workout Time -->
+      <!-- Total Workout Time -->
       <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-2">
         <div class="flex justify-between items-center">
           <span class="text-xs font-bold uppercase text-white">Total Workout Duration</span>
@@ -192,18 +197,18 @@
         </div>
         <div class="flex items-center gap-3 justify-center py-2">
           <div class="flex flex-col items-center">
-            <input id="custom-total-min" type="number" min="0" max="180" value="10" onchange="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-white focus:border-primary-container outline-none"/>
-            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1">Minutes</span>
+            <input id="custom-total-min" type="number" min="0" max="180" value="10" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-white focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Minutes</span>
           </div>
           <span class="text-3xl font-bold text-on-surface-variant">:</span>
           <div class="flex flex-col items-center">
-            <input id="custom-total-sec" type="number" min="0" max="59" value="0" onchange="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-white focus:border-primary-container outline-none"/>
-            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1">Seconds</span>
+            <input id="custom-total-sec" type="number" min="0" max="59" value="0" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-white focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Seconds</span>
           </div>
         </div>
       </div>
 
-      <!-- Card 2: Interval Work & Rest Duration -->
+      <!-- Interval Work Duration -->
       <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-3">
         <div class="flex justify-between items-center">
           <span class="text-xs font-bold uppercase text-white">Interval Duration (Work)</span>
@@ -211,13 +216,13 @@
         </div>
         <div class="flex items-center gap-3 justify-center py-1">
           <div class="flex flex-col items-center">
-            <input id="custom-work-min" type="number" min="0" max="59" value="1" onchange="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-primary-container focus:border-primary-container outline-none"/>
-            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1">Minutes</span>
+            <input id="custom-work-min" type="number" min="0" max="59" value="1" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-primary-container focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Minutes</span>
           </div>
           <span class="text-3xl font-bold text-on-surface-variant">:</span>
           <div class="flex flex-col items-center">
-            <input id="custom-work-sec" type="number" min="0" max="59" value="0" onchange="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-primary-container focus:border-primary-container outline-none"/>
-            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1">Seconds</span>
+            <input id="custom-work-sec" type="number" min="0" max="59" value="0" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-primary-container focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Seconds</span>
           </div>
         </div>
 
@@ -228,8 +233,8 @@
             <span class="text-[10px] text-on-surface-variant">Pause countdown between sets</span>
           </div>
           <div class="flex items-center gap-1.5">
-            <input id="custom-rest-sec" type="number" min="0" max="180" value="0" onchange="syncCustomTimes()" class="w-16 h-10 bg-surface-high border border-surface-highest rounded text-center font-mono font-bold text-secondary-container outline-none"/>
-            <span class="text-xs font-mono text-on-surface-variant">SEC</span>
+            <input id="custom-rest-sec" type="number" min="0" max="180" value="0" oninput="syncCustomTimes()" class="w-16 h-10 bg-surface-high border border-surface-highest rounded text-center font-mono font-bold text-secondary-container outline-none"/>
+            <span class="text-xs font-mono text-on-surface-variant font-bold">SEC</span>
           </div>
         </div>
 
@@ -237,13 +242,13 @@
         <div class="pt-2 border-t border-surface-high flex items-center justify-between">
           <div class="flex flex-col">
             <span class="text-xs font-bold text-white">3-2-1 Beep Countdown</span>
-            <span class="text-[10px] text-on-surface-variant">Acoustic lead-in beeps before booms</span>
+            <span class="text-[10px] text-on-surface-variant">Audio lead-in beeps before booms</span>
           </div>
           <input id="chk-countdown-beeps" type="checkbox" checked class="w-5 h-5 accent-primary-container cursor-pointer"/>
         </div>
       </div>
 
-      <button onclick="saveAndStartWorkout()" class="w-full h-12 bg-primary-container active:scale-95 text-on-primary rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 shadow-lg">
+      <button onclick="saveAndStartWorkout()" type="button" class="w-full h-12 bg-primary-container active:scale-95 text-on-primary rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer">
         <span class="material-symbols-outlined text-[20px]">check_circle</span>
         <span>Apply Setup & Start Drill</span>
       </button>
@@ -262,7 +267,7 @@
             <input type="radio" name="cue-tone" value="double-stadium" checked class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
             <span class="text-xs font-mono font-bold text-white">Double Stadium Boom (2× 808)</span>
           </div>
-          <button onclick="event.preventDefault(); AudioEngine.triggerBoom(0); AudioEngine.triggerBoom(0.25);" class="text-primary-container text-xs font-mono font-bold uppercase">Test</button>
+          <button onclick="event.preventDefault(); AudioEngine.triggerBoom(0); AudioEngine.triggerBoom(0.25);" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
         </label>
 
         <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
@@ -270,7 +275,7 @@
             <input type="radio" name="cue-tone" value="whistle" class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
             <span class="text-xs font-mono font-bold text-white">Referee Whistle Blast</span>
           </div>
-          <button onclick="event.preventDefault(); AudioEngine.playWhistle();" class="text-primary-container text-xs font-mono font-bold uppercase">Test</button>
+          <button onclick="event.preventDefault(); AudioEngine.playWhistle();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
         </label>
 
         <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
@@ -278,7 +283,7 @@
             <input type="radio" name="cue-tone" value="starter-gun" class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
             <span class="text-xs font-mono font-bold text-white">Track Starter Gun Crack</span>
           </div>
-          <button onclick="event.preventDefault(); AudioEngine.playGunshot();" class="text-primary-container text-xs font-mono font-bold uppercase">Test</button>
+          <button onclick="event.preventDefault(); AudioEngine.playGunshot();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
         </label>
 
         <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
@@ -286,11 +291,11 @@
             <input type="radio" name="cue-tone" value="boxing-bell" class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
             <span class="text-xs font-mono font-bold text-white">Boxing Ring Brass Bell</span>
           </div>
-          <button onclick="event.preventDefault(); AudioEngine.playBell();" class="text-primary-container text-xs font-mono font-bold uppercase">Test</button>
+          <button onclick="event.preventDefault(); AudioEngine.playBell();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
         </label>
       </div>
 
-      <button onclick="AudioEngine.playFinale()" class="w-full h-12 bg-secondary-container active:scale-95 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow">
+      <button onclick="AudioEngine.playFinale()" type="button" class="w-full h-12 bg-secondary-container active:scale-95 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow cursor-pointer">
         <span class="material-symbols-outlined text-[20px]">campaign</span>
         <span>Test 5× Thunder Climax Alarm</span>
       </button>
@@ -307,7 +312,7 @@
             <span class="text-xs uppercase font-bold text-white block">Track 400m Repeats</span>
             <span class="text-[10px] font-mono text-primary-container">12m Total • 75s Splits</span>
           </div>
-          <button onclick="loadProtocol(12, 0, 1, 15, 'starter-gun')" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md">Load</button>
+          <button onclick="loadProtocol(12, 0, 1, 15, 'starter-gun')" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md cursor-pointer active:scale-95">Load</button>
         </div>
 
         <div class="p-3 bg-surface-container rounded-xl border border-surface-high flex items-center justify-between">
@@ -315,7 +320,7 @@
             <span class="text-xs uppercase font-bold text-white block">HIIT Tabata 20/10</span>
             <span class="text-[10px] font-mono text-secondary-container">4m Total • 20s Work / 10s Rest</span>
           </div>
-          <button onclick="loadProtocol(4, 0, 0, 20, 'whistle', 10)" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md">Load</button>
+          <button onclick="loadProtocol(4, 0, 0, 20, 'whistle', 10)" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md cursor-pointer active:scale-95">Load</button>
         </div>
 
         <div class="p-3 bg-surface-container rounded-xl border border-surface-high flex items-center justify-between">
@@ -323,7 +328,7 @@
             <span class="text-xs uppercase font-bold text-white block">Boxing Jump Rope</span>
             <span class="text-[10px] font-mono text-primary-container">9m Total • 3m Rounds</span>
           </div>
-          <button onclick="loadProtocol(9, 0, 3, 0, 'boxing-bell')" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md">Load</button>
+          <button onclick="loadProtocol(9, 0, 3, 0, 'boxing-bell')" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md cursor-pointer active:scale-95">Load</button>
         </div>
       </div>
     </section>
@@ -334,8 +339,8 @@
     <section id="tab-install-hub" class="tab-pane hidden flex flex-col gap-3.5">
       <div>
         <span class="text-[10px] font-mono uppercase text-primary-container font-bold">Device Installation</span>
-        <h2 class="text-xl font-bold uppercase text-white">Scan & Download Hub</h2>
-        <p class="text-xs text-on-surface-variant">Install BoomPace directly without app-store logins.</p>
+        <h2 class="text-xl font-bold uppercase text-white">Scan & Share Hub</h2>
+        <p class="text-xs text-on-surface-variant">Share your live app with athletes or other devices.</p>
       </div>
 
       <!-- Scannable QR Code -->
@@ -346,21 +351,19 @@
           <img id="qr-img" class="w-48 h-48 rounded object-contain" alt="QR Code"/>
         </div>
 
-        <!-- URL Input to easily change the QR code to your live URL -->
+        <!-- Dynamic Live URL box -->
         <div class="w-full mt-3 flex items-center gap-1.5 bg-surface-low p-2 rounded-lg border border-surface-high">
           <span class="material-symbols-outlined text-primary-container text-[16px]">link</span>
-          <input id="qr-url-box" type="text" oninput="updateQRImage(this.value)" class="w-full bg-transparent text-[10px] font-mono text-white outline-none" placeholder="Enter your live app URL..."/>
-          <button onclick="copyCurrentURL()" class="px-2 py-1 bg-surface-high rounded text-[10px] font-mono font-bold uppercase hover:text-primary-container">Copy</button>
+          <input id="qr-url-box" type="text" oninput="updateQRImage(this.value)" class="w-full bg-transparent text-[10px] font-mono text-white outline-none" placeholder="App URL..."/>
+          <button onclick="copyCurrentURL()" class="px-2 py-1 bg-surface-high rounded text-[10px] font-mono font-bold uppercase hover:text-primary-container active:scale-95">Copy</button>
         </div>
-        <span class="text-[9px] text-on-surface-variant mt-1.5">Tip: Paste your hosted link above to generate a shareable QR for athletes.</span>
       </div>
 
-      <!-- Device Step by Step -->
+      <!-- Step by step -->
       <div class="bg-surface-low p-3.5 rounded-xl border border-surface-high text-xs space-y-2">
-        <span class="text-[10px] font-mono uppercase text-primary-container font-bold block">How to Install Properly:</span>
-        <p>• <strong>Android:</strong> Open in <strong>Google Chrome</strong> (do NOT use "HTML Viewer"). Tap the three dots (⋮) $\rightarrow$ select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</p>
-        <p>• <strong>iPhone:</strong> Open the link in <strong>Safari</strong>. Tap the <strong>Share</strong> icon (square with arrow) $\rightarrow$ tap <strong>"Add to Home Screen"</strong>.</p>
-        <p>• <strong>Free Web Hosting:</strong> Drag this file into <strong>tiiny.host</strong> or <strong>netlify.com/drop</strong> to get a permanent link where "Add to Home Screen" works automatically.</p>
+        <span class="text-[10px] font-mono uppercase text-primary-container font-bold block">How to Install on Other Devices:</span>
+        <p>• <strong>Android:</strong> Scan the QR code $\rightarrow$ Chrome opens $\rightarrow$ Tap the three dots (⋮) $\rightarrow$ <strong>"Install app"</strong>.</p>
+        <p>• <strong>iPhone:</strong> Scan QR code with Camera $\rightarrow$ Safari opens $\rightarrow$ Tap <strong>Share</strong> $\rightarrow$ <strong>"Add to Home Screen"</strong>.</p>
       </div>
     </section>
 
@@ -369,34 +372,34 @@
   <!-- Bottom Navigation -->
   <nav class="fixed bottom-0 w-full z-40 pb-safe bg-surface/95 backdrop-blur-md border-t border-surface-high shadow-2xl">
     <div class="flex justify-around items-center h-15 px-2">
-      <button onclick="navigateTab('active-workout')" data-tab="active-workout" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-primary-container">
+      <button onclick="navigateTab('active-workout')" data-tab="active-workout" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-primary-container cursor-pointer">
         <span class="material-symbols-outlined text-[22px]">timer</span>
         <span class="text-[9px] uppercase font-bold font-mono">Workout</span>
       </button>
 
-      <button onclick="navigateTab('interval-setup')" data-tab="interval-setup" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant">
+      <button onclick="navigateTab('interval-setup')" data-tab="interval-setup" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant cursor-pointer">
         <span class="material-symbols-outlined text-[22px]">tune</span>
         <span class="text-[9px] uppercase font-bold font-mono">Setup</span>
       </button>
 
-      <button onclick="navigateTab('sound-cues')" data-tab="sound-cues" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant">
+      <button onclick="navigateTab('sound-cues')" data-tab="sound-cues" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant cursor-pointer">
         <span class="material-symbols-outlined text-[22px]">graphic_eq</span>
         <span class="text-[9px] uppercase font-bold font-mono">Sounds</span>
       </button>
 
-      <button onclick="navigateTab('routines')" data-tab="routines" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant">
+      <button onclick="navigateTab('routines')" data-tab="routines" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant cursor-pointer">
         <span class="material-symbols-outlined text-[22px]">bookmark</span>
         <span class="text-[9px] uppercase font-bold font-mono">Presets</span>
       </button>
 
-      <button onclick="navigateTab('install-hub')" data-tab="install-hub" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant">
+      <button onclick="navigateTab('install-hub')" data-tab="install-hub" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant cursor-pointer">
         <span class="material-symbols-outlined text-[22px]">qr_code_scanner</span>
         <span class="text-[9px] uppercase font-bold font-mono">Install</span>
       </button>
     </div>
   </nav>
 
-  <!-- Global Toast -->
+  <!-- Global Action Toast -->
   <div id="toast" class="fixed bottom-20 left-4 right-4 z-50 transform translate-y-32 opacity-0 transition-all duration-300 pointer-events-none">
     <div class="flex items-center gap-2 p-3 bg-surface-highest border border-primary-container/40 text-white rounded-xl shadow-2xl">
       <span id="toast-icon" class="material-symbols-outlined text-primary-container text-[20px]">check_circle</span>
@@ -404,7 +407,7 @@
     </div>
   </div>
 
-  <!-- JavaScript Engine -->
+  <!-- JavaScript Application Engine -->
   <script>
     const state = {
       totalSec: 600,
@@ -417,67 +420,75 @@
       isRunning: false,
       loudMode: true,
       cueTone: 'double-stadium',
-      timerId: null
+      timerId: null,
+      toastTimer: null
     };
 
-    /* Web Audio Synthesizer */
+    /* Web Audio API Engine */
     const AudioEngine = {
       ctx: null,
 
       init() {
-        if (!this.ctx) {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (AudioContext) this.ctx = new AudioContext();
-        }
-        if (this.ctx && this.ctx.state === 'suspended') {
-          this.ctx.resume();
+        try {
+          if (!this.ctx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) this.ctx = new AudioContext();
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        } catch (e) {
+          console.warn('Audio init warning:', e);
         }
       },
 
       triggerBoom(delay = 0) {
-        this.init();
-        if (!this.ctx) return;
-        const t = this.ctx.currentTime + delay;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        const filter = this.ctx.createBiquadFilter();
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const t = this.ctx.currentTime + delay;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
 
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(140, t);
-        osc.frequency.exponentialRampToValueAtTime(36, t + 0.35);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(140, t);
+          osc.frequency.exponentialRampToValueAtTime(36, t + 0.35);
 
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(280, t);
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(280, t);
 
-        const peak = state.loudMode ? 1.4 : 0.8;
-        gain.gain.setValueAtTime(peak, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+          const peak = state.loudMode ? 1.4 : 0.8;
+          gain.gain.setValueAtTime(peak, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
 
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(t);
-        osc.stop(t + 0.6);
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.6);
+        } catch(e) {}
       },
 
       playBeep(freq = 880, dur = 0.1) {
-        this.init();
-        if (!this.ctx) return;
-        const t = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, t);
-        gain.gain.setValueAtTime(0.3, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(t);
-        osc.stop(t + dur + 0.05);
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const t = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + dur + 0.05);
+        } catch(e) {}
       },
 
       playCue() {
-        this.init();
         if (state.cueTone === 'starter-gun') return this.playGunshot();
         if (state.cueTone === 'whistle') return this.playWhistle();
         if (state.cueTone === 'boxing-bell') return this.playBell();
@@ -488,102 +499,108 @@
       },
 
       playGunshot() {
-        this.init();
-        if (!this.ctx) return;
-        [0, 0.2].forEach(delay => {
-          const t = this.ctx.currentTime + delay;
-          const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.1, this.ctx.sampleRate);
-          const data = buffer.getChannelData(0);
-          for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-          const noise = this.ctx.createBufferSource();
-          noise.buffer = buffer;
-          const filter = this.ctx.createBiquadFilter();
-          filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(1400, t);
-          const gain = this.ctx.createGain();
-          gain.gain.setValueAtTime(1.2, t);
-          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-          noise.connect(filter);
-          filter.connect(gain);
-          gain.connect(this.ctx.destination);
-          noise.start(t);
-        });
+        try {
+          this.init();
+          if (!this.ctx) return;
+          [0, 0.2].forEach(delay => {
+            const t = this.ctx.currentTime + delay;
+            const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.1, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(1400, t);
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(1.2, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            noise.start(t);
+          });
+        } catch(e) {}
       },
 
       playWhistle() {
-        this.init();
-        if (!this.ctx) return;
-        [0, 0.2].forEach(d => {
-          const t = this.ctx.currentTime + d;
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(3000, t);
-          gain.gain.setValueAtTime(0.6, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(t);
-          osc.stop(t + 0.15);
-        });
+        try {
+          this.init();
+          if (!this.ctx) return;
+          [0, 0.2].forEach(d => {
+            const t = this.ctx.currentTime + d;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(3000, t);
+            gain.gain.setValueAtTime(0.6, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.15);
+          });
+        } catch(e) {}
       },
 
       playBell() {
-        this.init();
-        if (!this.ctx) return;
-        const t = this.ctx.currentTime;
-        [440, 880, 1320].forEach((freq, idx) => {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, t);
-          gain.gain.setValueAtTime(0.4 / (idx + 1), t);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(t);
-          osc.stop(t + 1.3);
-        });
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const t = this.ctx.currentTime;
+          [440, 880, 1320].forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.4 / (idx + 1), t);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 1.3);
+          });
+        } catch(e) {}
       },
 
       playFinale() {
-        this.init();
         [0, 0.28, 0.56, 0.84, 1.15].forEach(d => this.triggerBoom(d));
         if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 300]);
         const f = document.getElementById('flash-overlay');
         if (f) {
-          f.classList.add('strobe-active');
-          setTimeout(() => f.classList.remove('strobe-active'), 1400);
+          f.classList.add('strobe-flash');
+          setTimeout(() => f.classList.remove('strobe-flash'), 1500);
         }
       }
     };
 
-    /* Timing Calculation */
     function getTotalIntervals() {
       const cycle = state.workSec + state.restSec;
       return Math.max(1, Math.floor(state.totalSec / cycle));
     }
 
     function formatTime(sec) {
+      if (isNaN(sec) || sec < 0) sec = 0;
       const m = Math.floor(sec / 60);
       const s = sec % 60;
       return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
     function syncCustomTimes() {
-      const tMin = parseInt(document.getElementById('custom-total-min').value, 10) || 0;
-      const tSec = parseInt(document.getElementById('custom-total-sec').value, 10) || 0;
-      const wMin = parseInt(document.getElementById('custom-work-min').value, 10) || 0;
-      const wSec = parseInt(document.getElementById('custom-work-sec').value, 10) || 0;
-      const rSec = parseInt(document.getElementById('custom-rest-sec').value, 10) || 0;
+      const tMin = parseInt(document.getElementById('custom-total-min')?.value || '10', 10);
+      const tSec = parseInt(document.getElementById('custom-total-sec')?.value || '0', 10);
+      const wMin = parseInt(document.getElementById('custom-work-min')?.value || '1', 10);
+      const wSec = parseInt(document.getElementById('custom-work-sec')?.value || '0', 10);
+      const rSec = parseInt(document.getElementById('custom-rest-sec')?.value || '0', 10);
 
-      state.totalSec = Math.max(10, (tMin * 60) + tSec);
-      state.workSec = Math.max(5, (wMin * 60) + wSec);
-      state.restSec = Math.max(0, rSec);
+      state.totalSec = Math.max(10, ((isNaN(tMin)?10:tMin) * 60) + (isNaN(tSec)?0:tSec));
+      state.workSec = Math.max(5, ((isNaN(wMin)?1:wMin) * 60) + (isNaN(wSec)?0:wSec));
+      state.restSec = Math.max(0, isNaN(rSec)?0:rSec);
 
       const count = getTotalIntervals();
       const badge = document.getElementById('calculated-intervals-badge');
       if (badge) badge.textContent = `${count} INTERVALS`;
+      updateHUD();
     }
 
     function saveAndStartWorkout() {
@@ -595,22 +612,35 @@
     }
 
     function loadProtocol(tMin, tSec, wMin, wSec, tone, rSec = 0) {
-      document.getElementById('custom-total-min').value = tMin;
-      document.getElementById('custom-total-sec').value = tSec;
-      document.getElementById('custom-work-min').value = wMin;
-      document.getElementById('custom-work-sec').value = wSec;
-      document.getElementById('custom-rest-sec').value = rSec;
+      const elTMin = document.getElementById('custom-total-min');
+      const elTSec = document.getElementById('custom-total-sec');
+      const elWMin = document.getElementById('custom-work-min');
+      const elWSec = document.getElementById('custom-work-sec');
+      const elRSec = document.getElementById('custom-rest-sec');
+
+      if (elTMin) elTMin.value = tMin;
+      if (elTSec) elTSec.value = tSec;
+      if (elWMin) elWMin.value = wMin;
+      if (elWSec) elWSec.value = wSec;
+      if (elRSec) elRSec.value = rSec;
+
       state.cueTone = tone;
       saveAndStartWorkout();
     }
 
     function updateHUD() {
       const total = getTotalIntervals();
-      document.getElementById('interval-digits').textContent = formatTime(state.intervalRemaining);
-      document.getElementById('session-elapsed').textContent = formatTime(state.sessionElapsed);
-      document.getElementById('session-remaining').textContent = formatTime(Math.max(0, state.totalSec - state.sessionElapsed));
-      document.getElementById('hud-total-cap').textContent = `${formatTime(state.totalSec)} CAP`;
-      document.getElementById('hud-interval-badge').textContent = `INTERVAL ${state.currentInterval} OF ${total}`;
+      const digitsEl = document.getElementById('interval-digits');
+      const elapsedEl = document.getElementById('session-elapsed');
+      const remainingEl = document.getElementById('session-remaining');
+      const capEl = document.getElementById('hud-total-cap');
+      const badgeEl = document.getElementById('hud-interval-badge');
+
+      if (digitsEl) digitsEl.textContent = formatTime(state.intervalRemaining);
+      if (elapsedEl) elapsedEl.textContent = formatTime(state.sessionElapsed);
+      if (remainingEl) remainingEl.textContent = formatTime(Math.max(0, state.totalSec - state.sessionElapsed));
+      if (capEl) capEl.textContent = `${formatTime(state.totalSec)} CAP`;
+      if (badgeEl) badgeEl.textContent = `INTERVAL ${state.currentInterval} OF ${total}`;
 
       const phaseLabel = document.getElementById('hud-phase-label');
       if (phaseLabel) {
@@ -620,13 +650,13 @@
 
       const activeCycle = state.isRestPhase ? state.restSec : state.workSec;
       const intRing = document.getElementById('interval-ring');
-      if (intRing) {
+      if (intRing && activeCycle > 0) {
         intRing.style.strokeDashoffset = 464.95 * (1 - (state.intervalRemaining / activeCycle));
         intRing.setAttribute('stroke', state.isRestPhase ? '#ff571a' : '#c3f400');
       }
 
       const sessRing = document.getElementById('session-ring');
-      if (sessRing) {
+      if (sessRing && state.totalSec > 0) {
         sessRing.style.strokeDashoffset = 565.48 * (1 - (state.sessionElapsed / state.totalSec));
       }
     }
@@ -669,7 +699,6 @@
       }
 
       if (state.intervalRemaining <= 0) {
-        // Toggle Work / Rest
         if (state.restSec > 0 && !state.isRestPhase) {
           state.isRestPhase = true;
           state.intervalRemaining = state.restSec;
@@ -679,12 +708,14 @@
           state.isRestPhase = false;
           if (state.currentInterval >= getTotalIntervals() || state.sessionElapsed >= state.totalSec) {
             state.isRunning = false;
-            clearInterval(state.timerId);
+            if (state.timerId) clearInterval(state.timerId);
             state.timerId = null;
             AudioEngine.playFinale();
             showToast('WORKOUT FINISHED!', 'emoji_events');
-            document.getElementById('btn-timer-text').textContent = 'Restart Drill';
-            document.getElementById('btn-timer-icon').textContent = 'play_arrow';
+            const txt = document.getElementById('btn-timer-text');
+            const icon = document.getElementById('btn-timer-icon');
+            if (txt) txt.textContent = 'Restart Drill';
+            if (icon) icon.textContent = 'play_arrow';
             return;
           } else {
             state.currentInterval++;
@@ -708,6 +739,7 @@
         if (text) text.textContent = 'Pause Drill';
         if (icon) icon.textContent = 'pause';
       } else {
+        if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
         if (text) text.textContent = 'Resume Drill';
         if (icon) icon.textContent = 'play_arrow';
       }
@@ -729,21 +761,23 @@
 
     function resetTimer() {
       state.isRunning = false;
-      if (state.timerId) clearInterval(state.timerId);
-      state.timerId = null;
+      if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
       state.currentInterval = 1;
       state.isRestPhase = false;
       state.sessionElapsed = 0;
       state.intervalRemaining = state.workSec;
-      document.getElementById('btn-timer-text').textContent = 'Start Drill';
-      document.getElementById('btn-timer-icon').textContent = 'play_arrow';
+      const txt = document.getElementById('btn-timer-text');
+      const icon = document.getElementById('btn-timer-icon');
+      if (txt) txt.textContent = 'Start Drill';
+      if (icon) icon.textContent = 'play_arrow';
       renderGrid();
       updateHUD();
     }
 
     function toggleLoudMode() {
       state.loudMode = !state.loudMode;
-      document.getElementById('loud-text').textContent = state.loudMode ? '110dB LOUD' : 'NORMAL dB';
+      const text = document.getElementById('loud-text');
+      if (text) text.textContent = state.loudMode ? '110dB LOUD' : 'NORMAL dB';
       showToast(state.loudMode ? '110dB Loud Mode ON' : 'Normal Audio', 'bolt');
     }
 
@@ -764,9 +798,6 @@
     function initQR() {
       const urlBox = document.getElementById('qr-url-box');
       let current = window.location.href;
-      if (current.includes('cdpn.io')) {
-        current = document.referrer || current;
-      }
       if (urlBox && !urlBox.value) {
         urlBox.value = current;
       }
@@ -789,17 +820,21 @@
 
     function showToast(msg, icon = 'check_circle') {
       const t = document.getElementById('toast');
-      document.getElementById('toast-text').textContent = msg;
-      document.getElementById('toast-icon').textContent = icon;
+      const txt = document.getElementById('toast-text');
+      const ico = document.getElementById('toast-icon');
+      if (!t || !txt || !ico) return;
+      txt.textContent = msg;
+      ico.textContent = icon;
       t.classList.remove('translate-y-32', 'opacity-0');
       t.classList.add('translate-y-0', 'opacity-100');
       clearTimeout(state.toastTimer);
       state.toastTimer = setTimeout(() => {
         t.classList.remove('translate-y-0', 'opacity-100');
         t.classList.add('translate-y-32', 'opacity-0');
-      }, 2400);
+      }, 2200);
     }
 
+    // Startup
     window.addEventListener('DOMContentLoaded', () => {
       syncCustomTimes();
       resetTimer();
@@ -807,10 +842,11 @@
       document.body.addEventListener('touchstart', () => AudioEngine.init(), { once: true });
       document.body.addEventListener('click', () => AudioEngine.init(), { once: true });
     });
-  <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js');
-  }
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
   </script>
 </body>
 </html>
