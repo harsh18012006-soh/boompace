@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#10141a"/>
   <title>BoomPace • Acoustic Interval Timer</title>
 
-  <!-- Clean Link to Manifest File -->
+  <!-- Clean Manifest Link -->
   <link rel="manifest" href="./manifest.json"/>
 
   <!-- Google Fonts & Material Symbols -->
@@ -47,7 +47,6 @@
     };
   </script>
 
-  <!-- Protective Offline Styles -->
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -74,7 +73,10 @@
 
 <body class="bg-surface antialiased flex flex-col min-h-screen">
 
-  <!-- Strobe Flash Screen (Finale Alarm) -->
+  <!-- Background Audio Anchor (Keeps Android sound alive when screen turns off) -->
+  <audio id="bg-audio-anchor" loop preload="auto" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"></audio>
+
+  <!-- Strobe Flash Screen -->
   <div id="flash-overlay" class="fixed inset-0 pointer-events-none z-[100] bg-secondary-container opacity-0 transition-opacity"></div>
 
   <!-- Header -->
@@ -90,11 +92,12 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <button onclick="toggleLoudMode()" id="loud-btn" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-high border border-primary-container/30 text-primary-container text-[10px] font-mono font-bold active:scale-95 transition-transform">
-        <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
-        <span id="loud-text">110dB LOUD</span>
-      </button>
-      <button onclick="navigateTab('install-hub')" class="w-8 h-8 rounded-full bg-surface-high border border-surface-highest flex items-center justify-center text-white active:scale-90 transition-transform" title="QR & Share">
+      <!-- Screen Awake Status Pill -->
+      <div id="wakelock-pill" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-high border border-primary-container/30 text-primary-container text-[10px] font-mono font-bold">
+        <span id="wakelock-dot" class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
+        <span id="wakelock-text">AWAKE</span>
+      </div>
+      <button onclick="navigateTab('install-hub')" class="w-8 h-8 rounded-full bg-surface-high border border-surface-highest flex items-center justify-center text-white active:scale-90 transition-transform">
         <span class="material-symbols-outlined text-[18px]">qr_code_2</span>
       </button>
     </div>
@@ -116,7 +119,7 @@
           <span id="hud-total-cap" class="bg-surface-container px-2 py-0.5 rounded border border-surface-high text-white font-bold">10:00 CAP</span>
         </div>
 
-        <!-- Radial Countdown Dial -->
+        <!-- Radial Countdown -->
         <div class="relative w-60 h-60 flex items-center justify-center my-1">
           <svg class="w-full h-full -rotate-90" viewBox="0 0 200 200">
             <circle cx="100" cy="100" r="90" fill="none" stroke="#262a31" stroke-width="6"/>
@@ -159,7 +162,7 @@
         <div id="interval-grid" class="grid grid-cols-10 gap-1 w-full pt-1"></div>
       </div>
 
-      <!-- Action Buttons -->
+      <!-- Big Action Controls -->
       <div class="grid grid-cols-4 gap-2 pt-1">
         <button id="btn-timer-toggle" onclick="toggleTimer()" type="button" class="col-span-3 h-14 bg-primary-container active:scale-95 text-on-primary rounded-xl flex items-center justify-center gap-2 shadow-lg transition-transform cursor-pointer">
           <span id="btn-timer-icon" class="material-symbols-outlined text-[28px] font-bold">play_arrow</span>
@@ -173,8 +176,8 @@
 
       <div class="grid grid-cols-2 gap-2">
         <button onclick="AudioEngine.playCue()" type="button" class="h-11 bg-surface-container active:bg-surface-high border border-surface-high rounded-lg text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
-          <span class="material-symbols-outlined text-[17px] text-primary-container">surround_sound</span>
-          <span>Test Cue</span>
+          <span class="material-symbols-outlined text-[17px] text-primary-container">volume_up</span>
+          <span>Fire Cue Test</span>
         </button>
         <button onclick="resetTimer()" type="button" class="h-11 bg-surface-container active:bg-surface-high border border-surface-high rounded-lg text-secondary-container text-xs font-mono font-bold flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
           <span class="material-symbols-outlined text-[17px]">restart_alt</span>
@@ -187,7 +190,7 @@
          TAB 2: FULLY CUSTOMIZABLE SETUP
          ============================================== -->
     <section id="tab-interval-setup" class="tab-pane hidden flex flex-col gap-3">
-      <h2 class="text-lg font-bold uppercase text-white">Full Drill Customization</h2>
+      <h2 class="text-lg font-bold uppercase text-white">Drill Customization</h2>
 
       <!-- Total Workout Time -->
       <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-2">
@@ -255,10 +258,45 @@
     </section>
 
     <!-- ==============================================
-         TAB 3: SOUND CUES
+         TAB 3: SOUND & VIBRATION CUSTOMIZATION
          ============================================== -->
     <section id="tab-sound-cues" class="tab-pane hidden flex flex-col gap-3">
-      <h2 class="text-lg font-bold uppercase text-white">Sound Customization</h2>
+      <h2 class="text-lg font-bold uppercase text-white">Audio & Haptic Calibration</h2>
+
+      <!-- Volume Customization Slider (Up to 200% Overdrive) -->
+      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[20px]">volume_up</span>
+            <span class="text-xs font-bold uppercase text-white">Master Sound Volume</span>
+          </div>
+          <span id="vol-percentage-label" class="text-xs font-mono font-bold text-primary-container">160% (BOOST)</span>
+        </div>
+        <input id="vol-slider" type="range" min="30" max="220" value="160" step="5" oninput="updateMasterVolume(this.value)" class="w-full accent-primary-container h-2 bg-surface-high rounded-lg cursor-pointer"/>
+        <div class="flex justify-between text-[10px] font-mono text-on-surface-variant">
+          <span>50%</span>
+          <span>100% (Normal)</span>
+          <span class="text-primary-container font-bold">200% (Overdrive)</span>
+        </div>
+      </div>
+
+      <!-- Vibration Shock Intensity Selector -->
+      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[20px]">vibration</span>
+            <span class="text-xs font-bold uppercase text-white">Vibration Shock Intensity</span>
+          </div>
+          <button onclick="testVibration()" class="px-2 py-0.5 rounded bg-surface-high text-[10px] font-mono uppercase font-bold text-primary-container">Test Motor</button>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" onclick="setVibeIntensity('normal', this)" class="vibe-btn py-2.5 rounded-lg border text-xs font-mono font-bold bg-surface-high border-surface-highest text-on-surface-variant">Normal</button>
+          <button type="button" onclick="setVibeIntensity('heavy', this)" class="vibe-btn active-vibe py-2.5 rounded-lg border text-xs font-mono font-black bg-surface-highest border-primary-container/40 text-primary-container">Heavy</button>
+          <button type="button" onclick="setVibeIntensity('max', this)" class="vibe-btn py-2.5 rounded-lg border text-xs font-mono font-bold bg-surface-high border-surface-highest text-on-surface-variant">Max Shock</button>
+        </div>
+      </div>
+
+      <!-- Audio Cue Selector -->
       <div class="bg-surface-container rounded-xl p-3.5 border border-surface-high flex flex-col gap-2">
         <span class="text-[10px] font-mono uppercase text-on-surface-variant font-bold">Interval Transition Cue</span>
 
@@ -267,7 +305,7 @@
             <input type="radio" name="cue-tone" value="double-stadium" checked class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
             <span class="text-xs font-mono font-bold text-white">Double Stadium Boom (2× 808)</span>
           </div>
-          <button onclick="event.preventDefault(); AudioEngine.triggerBoom(0); AudioEngine.triggerBoom(0.25);" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
+          <button onclick="event.preventDefault(); AudioEngine.triggerBoom(0); AudioEngine.triggerBoom(0.25); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
         </label>
 
         <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
@@ -275,7 +313,7 @@
             <input type="radio" name="cue-tone" value="whistle" class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
             <span class="text-xs font-mono font-bold text-white">Referee Whistle Blast</span>
           </div>
-          <button onclick="event.preventDefault(); AudioEngine.playWhistle();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
+          <button onclick="event.preventDefault(); AudioEngine.playWhistle(); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
         </label>
 
         <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
@@ -283,7 +321,7 @@
             <input type="radio" name="cue-tone" value="starter-gun" class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
             <span class="text-xs font-mono font-bold text-white">Track Starter Gun Crack</span>
           </div>
-          <button onclick="event.preventDefault(); AudioEngine.playGunshot();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
+          <button onclick="event.preventDefault(); AudioEngine.playGunshot(); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
         </label>
 
         <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
@@ -291,7 +329,7 @@
             <input type="radio" name="cue-tone" value="boxing-bell" class="w-4 h-4 accent-primary-container" onchange="state.cueTone = this.value;"/>
             <span class="text-xs font-mono font-bold text-white">Boxing Ring Brass Bell</span>
           </div>
-          <button onclick="event.preventDefault(); AudioEngine.playBell();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
+          <button onclick="event.preventDefault(); AudioEngine.playBell(); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Test</button>
         </label>
       </div>
 
@@ -343,7 +381,6 @@
         <p class="text-xs text-on-surface-variant">Share your live app with athletes or other devices.</p>
       </div>
 
-      <!-- Scannable QR Code -->
       <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col items-center shadow-lg">
         <span class="text-[10px] font-mono uppercase text-on-surface-variant font-bold mb-2">Scan with Any Mobile Camera</span>
         
@@ -351,7 +388,6 @@
           <img id="qr-img" class="w-48 h-48 rounded object-contain" alt="QR Code"/>
         </div>
 
-        <!-- Dynamic Live URL box -->
         <div class="w-full mt-3 flex items-center gap-1.5 bg-surface-low p-2 rounded-lg border border-surface-high">
           <span class="material-symbols-outlined text-primary-container text-[16px]">link</span>
           <input id="qr-url-box" type="text" oninput="updateQRImage(this.value)" class="w-full bg-transparent text-[10px] font-mono text-white outline-none" placeholder="App URL..."/>
@@ -359,7 +395,6 @@
         </div>
       </div>
 
-      <!-- Step by step -->
       <div class="bg-surface-low p-3.5 rounded-xl border border-surface-high text-xs space-y-2">
         <span class="text-[10px] font-mono uppercase text-primary-container font-bold block">How to Install on Other Devices:</span>
         <p>• <strong>Android:</strong> Scan the QR code $\rightarrow$ Chrome opens $\rightarrow$ Tap the three dots (⋮) $\rightarrow$ <strong>"Install app"</strong>.</p>
@@ -407,7 +442,7 @@
     </div>
   </div>
 
-  <!-- JavaScript Application Engine -->
+  <!-- JavaScript Engine -->
   <script>
     const state = {
       totalSec: 600,
@@ -418,27 +453,82 @@
       intervalRemaining: 60,
       sessionElapsed: 0,
       isRunning: false,
-      loudMode: true,
       cueTone: 'double-stadium',
+      volumeMultiplier: 1.6, // Default 160% High Volume
+      vibeIntensity: 'heavy',
+      wakeLock: null,
+      workoutStartTime: 0,
       timerId: null,
       toastTimer: null
     };
 
-    /* Web Audio API Engine */
+    /* 1. Screen Wake Lock API (Keeps Screen from Turning Off) */
+    async function acquireWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          state.wakeLock = await navigator.wakeLock.request('screen');
+          document.getElementById('wakelock-dot').classList.replace('bg-outline', 'bg-primary-container');
+          document.getElementById('wakelock-text').textContent = 'AWAKE';
+          state.wakeLock.addEventListener('release', () => {
+            state.wakeLock = null;
+            if (document.getElementById('wakelock-dot')) {
+              document.getElementById('wakelock-dot').classList.replace('bg-primary-container', 'bg-outline');
+              document.getElementById('wakelock-text').textContent = 'SLEEP';
+            }
+          });
+        }
+      } catch (err) {}
+    }
+
+    function releaseWakeLock() {
+      if (state.wakeLock) {
+        state.wakeLock.release().catch(() => {});
+        state.wakeLock = null;
+      }
+    }
+
+    // Auto-reacquire wake lock when returning to app
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && state.isRunning) {
+        acquireWakeLock();
+      }
+    });
+
+    /* 2. Web Audio Synthesizer with Multi-Band Limiter */
     const AudioEngine = {
       ctx: null,
+      masterGain: null,
+      compressor: null,
 
       init() {
         try {
           if (!this.ctx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (AudioContext) this.ctx = new AudioContext();
+            if (AudioContext) {
+              this.ctx = new AudioContext();
+              this.compressor = this.ctx.createDynamicsCompressor();
+              this.compressor.threshold.setValueAtTime(-18, this.ctx.currentTime);
+              this.compressor.knee.setValueAtTime(24, this.ctx.currentTime);
+              this.compressor.ratio.setValueAtTime(12, this.ctx.currentTime);
+              this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+              this.compressor.release.setValueAtTime(0.2, this.ctx.currentTime);
+
+              this.masterGain = this.ctx.createGain();
+              this.masterGain.gain.setValueAtTime(state.volumeMultiplier, this.ctx.currentTime);
+
+              this.compressor.connect(this.masterGain);
+              this.masterGain.connect(this.ctx.destination);
+            }
           }
           if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume();
           }
-        } catch (e) {
-          console.warn('Audio init warning:', e);
+        } catch (e) {}
+      },
+
+      setVolume(val) {
+        if (this.masterGain && this.ctx) {
+          this.masterGain.gain.setValueAtTime(val, this.ctx.currentTime);
         }
       },
 
@@ -452,25 +542,24 @@
           const filter = this.ctx.createBiquadFilter();
 
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(140, t);
-          osc.frequency.exponentialRampToValueAtTime(36, t + 0.35);
+          osc.frequency.setValueAtTime(145, t);
+          osc.frequency.exponentialRampToValueAtTime(34, t + 0.4);
 
           filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(280, t);
+          filter.frequency.setValueAtTime(320, t);
 
-          const peak = state.loudMode ? 1.4 : 0.8;
-          gain.gain.setValueAtTime(peak, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+          gain.gain.setValueAtTime(1.5, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
 
           osc.connect(filter);
           filter.connect(gain);
-          gain.connect(this.ctx.destination);
+          gain.connect(this.compressor);
           osc.start(t);
-          osc.stop(t + 0.6);
+          osc.stop(t + 0.65);
         } catch(e) {}
       },
 
-      playBeep(freq = 880, dur = 0.1) {
+      playBeep(freq = 900, dur = 0.1) {
         try {
           this.init();
           if (!this.ctx) return;
@@ -479,23 +568,24 @@
           const gain = this.ctx.createGain();
           osc.type = 'sine';
           osc.frequency.setValueAtTime(freq, t);
-          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.setValueAtTime(0.8, t);
           gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
           osc.connect(gain);
-          gain.connect(this.ctx.destination);
+          gain.connect(this.compressor);
           osc.start(t);
           osc.stop(t + dur + 0.05);
         } catch(e) {}
       },
 
       playCue() {
-        if (state.cueTone === 'starter-gun') return this.playGunshot();
-        if (state.cueTone === 'whistle') return this.playWhistle();
-        if (state.cueTone === 'boxing-bell') return this.playBell();
-
-        this.triggerBoom(0);
-        this.triggerBoom(0.25);
-        if (navigator.vibrate) navigator.vibrate([100, 60, 100]);
+        if (state.cueTone === 'starter-gun') this.playGunshot();
+        else if (state.cueTone === 'whistle') this.playWhistle();
+        else if (state.cueTone === 'boxing-bell') this.playBell();
+        else {
+          this.triggerBoom(0);
+          this.triggerBoom(0.25);
+        }
+        triggerVibrationPattern();
       },
 
       playGunshot() {
@@ -504,20 +594,20 @@
           if (!this.ctx) return;
           [0, 0.2].forEach(delay => {
             const t = this.ctx.currentTime + delay;
-            const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.1, this.ctx.sampleRate);
+            const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.12, this.ctx.sampleRate);
             const data = buffer.getChannelData(0);
             for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
             const noise = this.ctx.createBufferSource();
             noise.buffer = buffer;
             const filter = this.ctx.createBiquadFilter();
             filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(1400, t);
+            filter.frequency.setValueAtTime(1500, t);
             const gain = this.ctx.createGain();
-            gain.gain.setValueAtTime(1.2, t);
-            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            gain.gain.setValueAtTime(1.8, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
             noise.connect(filter);
             filter.connect(gain);
-            gain.connect(this.ctx.destination);
+            gain.connect(this.compressor);
             noise.start(t);
           });
         } catch(e) {}
@@ -532,13 +622,13 @@
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(3000, t);
-            gain.gain.setValueAtTime(0.6, t);
-            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+            osc.frequency.setValueAtTime(3100, t);
+            gain.gain.setValueAtTime(1.0, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
             osc.connect(gain);
-            gain.connect(this.ctx.destination);
+            gain.connect(this.compressor);
             osc.start(t);
-            osc.stop(t + 0.15);
+            osc.stop(t + 0.2);
           });
         } catch(e) {}
       },
@@ -553,10 +643,10 @@
             const gain = this.ctx.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq, t);
-            gain.gain.setValueAtTime(0.4 / (idx + 1), t);
+            gain.gain.setValueAtTime(0.6 / (idx + 1), t);
             gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
             osc.connect(gain);
-            gain.connect(this.ctx.destination);
+            gain.connect(this.compressor);
             osc.start(t);
             osc.stop(t + 1.3);
           });
@@ -565,7 +655,7 @@
 
       playFinale() {
         [0, 0.28, 0.56, 0.84, 1.15].forEach(d => this.triggerBoom(d));
-        if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 300]);
+        triggerFinalVibration();
         const f = document.getElementById('flash-overlay');
         if (f) {
           f.classList.add('strobe-flash');
@@ -574,6 +664,48 @@
       }
     };
 
+    /* 3. High-Intensity Motor Vibration */
+    function triggerVibrationPattern() {
+      if (!navigator.vibrate) return;
+      if (state.vibeIntensity === 'normal') {
+        navigator.vibrate([180, 80, 180]);
+      } else if (state.vibeIntensity === 'heavy') {
+        navigator.vibrate([350, 80, 350, 80, 500]);
+      } else if (state.vibeIntensity === 'max') {
+        navigator.vibrate([600, 100, 600, 100, 900]);
+      }
+    }
+
+    function triggerFinalVibration() {
+      if (!navigator.vibrate) return;
+      navigator.vibrate([400, 100, 400, 100, 600, 150, 1200]);
+    }
+
+    function setVibeIntensity(level, btn) {
+      state.vibeIntensity = level;
+      document.querySelectorAll('.vibe-btn').forEach(b => {
+        b.className = 'vibe-btn py-2.5 rounded-lg border text-xs font-mono font-bold bg-surface-high border-surface-highest text-on-surface-variant';
+      });
+      btn.className = 'vibe-btn active-vibe py-2.5 rounded-lg border text-xs font-mono font-black bg-surface-highest border-primary-container/40 text-primary-container';
+      triggerVibrationPattern();
+      showToast(`Vibration: ${level.toUpperCase()}`, 'vibration');
+    }
+
+    function testVibration() {
+      triggerVibrationPattern();
+    }
+
+    function updateMasterVolume(val) {
+      const mult = val / 100;
+      state.volumeMultiplier = mult;
+      AudioEngine.setVolume(mult);
+      const lbl = document.getElementById('vol-percentage-label');
+      if (lbl) {
+        lbl.textContent = `${val}% ${val > 100 ? '(OVERDRIVE)' : ''}`;
+      }
+    }
+
+    /* 4. Timer Math & Background-Proof Clock */
     function getTotalIntervals() {
       const cycle = state.workSec + state.restSec;
       return Math.max(1, Math.floor(state.totalSec / cycle));
@@ -612,18 +744,11 @@
     }
 
     function loadProtocol(tMin, tSec, wMin, wSec, tone, rSec = 0) {
-      const elTMin = document.getElementById('custom-total-min');
-      const elTSec = document.getElementById('custom-total-sec');
-      const elWMin = document.getElementById('custom-work-min');
-      const elWSec = document.getElementById('custom-work-sec');
-      const elRSec = document.getElementById('custom-rest-sec');
-
-      if (elTMin) elTMin.value = tMin;
-      if (elTSec) elTSec.value = tSec;
-      if (elWMin) elWMin.value = wMin;
-      if (elWSec) elWSec.value = wSec;
-      if (elRSec) elRSec.value = rSec;
-
+      document.getElementById('custom-total-min').value = tMin;
+      document.getElementById('custom-total-sec').value = tSec;
+      document.getElementById('custom-work-min').value = wMin;
+      document.getElementById('custom-work-sec').value = wSec;
+      document.getElementById('custom-rest-sec').value = rSec;
       state.cueTone = tone;
       saveAndStartWorkout();
     }
@@ -689,13 +814,17 @@
 
     function onTick() {
       if (!state.isRunning) return;
-      state.sessionElapsed++;
+
+      // Real-world timestamp diff prevents background sleep drift
+      const now = Date.now();
+      const realElapsed = Math.floor((now - state.workoutStartTime) / 1000);
+      state.sessionElapsed = realElapsed;
       state.intervalRemaining--;
 
-      // 3-2-1 Audio Beep Lead-in
+      // 3-2-1 Audio Lead-in Beeps
       const beepsEnabled = document.getElementById('chk-countdown-beeps')?.checked;
       if (beepsEnabled && state.intervalRemaining <= 3 && state.intervalRemaining > 0) {
-        AudioEngine.playBeep(state.intervalRemaining === 1 ? 1200 : 800, 0.08);
+        AudioEngine.playBeep(state.intervalRemaining === 1 ? 1300 : 900, 0.08);
       }
 
       if (state.intervalRemaining <= 0) {
@@ -703,6 +832,7 @@
           state.isRestPhase = true;
           state.intervalRemaining = state.restSec;
           AudioEngine.playBeep(440, 0.3);
+          triggerVibrationPattern();
           showToast('Rest Phase Started', 'snooze');
         } else {
           state.isRestPhase = false;
@@ -711,6 +841,8 @@
             if (state.timerId) clearInterval(state.timerId);
             state.timerId = null;
             AudioEngine.playFinale();
+            releaseWakeLock();
+            pauseBgAudio();
             showToast('WORKOUT FINISHED!', 'emoji_events');
             const txt = document.getElementById('btn-timer-text');
             const icon = document.getElementById('btn-timer-icon');
@@ -728,6 +860,20 @@
       updateHUD();
     }
 
+    function playBgAudio() {
+      const audio = document.getElementById('bg-audio-anchor');
+      if (audio) {
+        audio.play().catch(() => {});
+      }
+    }
+
+    function pauseBgAudio() {
+      const audio = document.getElementById('bg-audio-anchor');
+      if (audio) {
+        audio.pause();
+      }
+    }
+
     function toggleTimer() {
       AudioEngine.init();
       state.isRunning = !state.isRunning;
@@ -735,13 +881,31 @@
       const icon = document.getElementById('btn-timer-icon');
 
       if (state.isRunning) {
+        // Calibrate start timestamp to existing elapsed time
+        state.workoutStartTime = Date.now() - (state.sessionElapsed * 1000);
         if (!state.timerId) state.timerId = setInterval(onTick, 1000);
         if (text) text.textContent = 'Pause Drill';
         if (icon) icon.textContent = 'pause';
+        acquireWakeLock();
+        playBgAudio();
+
+        // Android Lock-Screen Player notification
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: `BoomPace: Interval ${state.currentInterval}`,
+            artist: '110dB Audio Cues Active',
+            album: 'Sports Interval Timer'
+          });
+          navigator.mediaSession.setActionHandler('play', () => toggleTimer());
+          navigator.mediaSession.setActionHandler('pause', () => toggleTimer());
+          navigator.mediaSession.setActionHandler('nexttrack', () => skipInterval());
+        }
       } else {
         if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
         if (text) text.textContent = 'Resume Drill';
         if (icon) icon.textContent = 'play_arrow';
+        releaseWakeLock();
+        pauseBgAudio();
       }
     }
 
@@ -761,92 +925,4 @@
 
     function resetTimer() {
       state.isRunning = false;
-      if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
-      state.currentInterval = 1;
-      state.isRestPhase = false;
-      state.sessionElapsed = 0;
-      state.intervalRemaining = state.workSec;
-      const txt = document.getElementById('btn-timer-text');
-      const icon = document.getElementById('btn-timer-icon');
-      if (txt) txt.textContent = 'Start Drill';
-      if (icon) icon.textContent = 'play_arrow';
-      renderGrid();
-      updateHUD();
-    }
-
-    function toggleLoudMode() {
-      state.loudMode = !state.loudMode;
-      const text = document.getElementById('loud-text');
-      if (text) text.textContent = state.loudMode ? '110dB LOUD' : 'NORMAL dB';
-      showToast(state.loudMode ? '110dB Loud Mode ON' : 'Normal Audio', 'bolt');
-    }
-
-    function navigateTab(tabKey) {
-      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
-      const target = document.getElementById(`tab-${tabKey}`);
-      if (target) target.classList.remove('hidden');
-
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        const isMatch = btn.getAttribute('data-tab') === tabKey;
-        btn.classList.toggle('text-primary-container', isMatch);
-        btn.classList.toggle('text-on-surface-variant', !isMatch);
-      });
-
-      if (tabKey === 'install-hub') initQR();
-    }
-
-    function initQR() {
-      const urlBox = document.getElementById('qr-url-box');
-      let current = window.location.href;
-      if (urlBox && !urlBox.value) {
-        urlBox.value = current;
-      }
-      updateQRImage(urlBox ? urlBox.value : current);
-    }
-
-    function updateQRImage(url) {
-      const img = document.getElementById('qr-img');
-      if (img && url) {
-        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
-      }
-    }
-
-    function copyCurrentURL() {
-      const url = document.getElementById('qr-url-box')?.value || window.location.href;
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(url).then(() => showToast('Link copied!', 'done_all'));
-      }
-    }
-
-    function showToast(msg, icon = 'check_circle') {
-      const t = document.getElementById('toast');
-      const txt = document.getElementById('toast-text');
-      const ico = document.getElementById('toast-icon');
-      if (!t || !txt || !ico) return;
-      txt.textContent = msg;
-      ico.textContent = icon;
-      t.classList.remove('translate-y-32', 'opacity-0');
-      t.classList.add('translate-y-0', 'opacity-100');
-      clearTimeout(state.toastTimer);
-      state.toastTimer = setTimeout(() => {
-        t.classList.remove('translate-y-0', 'opacity-100');
-        t.classList.add('translate-y-32', 'opacity-0');
-      }, 2200);
-    }
-
-    // Initialize App
-    window.addEventListener('DOMContentLoaded', () => {
-      syncCustomTimes();
-      resetTimer();
-      initQR();
-      document.body.addEventListener('touchstart', () => AudioEngine.init(), { once: true });
-      document.body.addEventListener('click', () => AudioEngine.init(), { once: true });
-    });
-
-    // Register Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(console.warn);
-    }
-  </script>
-</body>
-</html>
+      if (
