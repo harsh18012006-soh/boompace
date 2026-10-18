@@ -2,9 +2,11 @@
   "name": "BoomPace Sports Timer",
   "short_name": "BoomPace",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#10141a",
   "theme_color": "#10141a",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "https://lh3.googleusercontent.com/aida-public/AB6AXuC3HKwH2hjspvFI-iLkd_ZnRWR1FZ430Vx0QMGioVGoH9bkkMuleUHTryjizz1BiLSF0_dqLJKaFV05Yx2w4X7wtxQeMwHtiowjxrKz16LeUZEcviNOjw5PbYZvNrMEbLQRPkVpQ4-kt-bLZgrvSIF_lmcJFfJP5e0Yln0af7yyfiNo5txCFiX_6QsNF_ZgE-53Jjz8L2zyH8U57v5uhrLSN14dThWq4jO9q4N3KLtcGryAHcZH916OAA",
