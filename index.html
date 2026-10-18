@@ -167,4 +167,899 @@
       </div>
 
       <div class="grid grid-cols-2 gap-2">
-        <button onc
+        <button onclick="SoundVault.play(state.cueTone)" type="button" class="h-11 bg-surface-container active:bg-surface-high border border-surface-high rounded-lg text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
+          <span class="material-symbols-outlined text-[17px] text-primary-container">volume_up</span>
+          <span>Fire Cue Test</span>
+        </button>
+        <button onclick="resetTimer()" type="button" class="h-11 bg-surface-container active:bg-surface-high border border-surface-high rounded-lg text-secondary-container text-xs font-mono font-bold flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
+          <span class="material-symbols-outlined text-[17px]">restart_alt</span>
+          <span>Reset</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- TAB 2: SETUP -->
+    <section id="tab-interval-setup" class="tab-pane hidden flex flex-col gap-3">
+      <h2 class="text-lg font-bold uppercase text-white">Drill Calibration</h2>
+
+      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-2">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold uppercase text-white">Total Workout Duration</span>
+          <span class="text-[10px] font-mono text-primary-container uppercase font-bold">MIN : SEC</span>
+        </div>
+        <div class="flex items-center gap-3 justify-center py-2">
+          <div class="flex flex-col items-center">
+            <input id="custom-total-min" type="number" min="0" max="180" value="10" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-white focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Minutes</span>
+          </div>
+          <span class="text-3xl font-bold text-on-surface-variant">:</span>
+          <div class="flex flex-col items-center">
+            <input id="custom-total-sec" type="number" min="0" max="59" value="0" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-white focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Seconds</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold uppercase text-white">Interval Duration (Work)</span>
+          <span class="text-[10px] font-mono text-primary-container font-bold" id="calculated-intervals-badge">10 INTERVALS</span>
+        </div>
+        <div class="flex items-center gap-3 justify-center py-1">
+          <div class="flex flex-col items-center">
+            <input id="custom-work-min" type="number" min="0" max="59" value="1" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-primary-container focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Minutes</span>
+          </div>
+          <span class="text-3xl font-bold text-on-surface-variant">:</span>
+          <div class="flex flex-col items-center">
+            <input id="custom-work-sec" type="number" min="0" max="59" value="0" oninput="syncCustomTimes()" class="w-20 h-14 bg-surface-high border border-surface-highest rounded-lg text-center text-3xl font-mono font-extrabold text-primary-container focus:border-primary-container outline-none"/>
+            <span class="text-[9px] uppercase font-mono text-on-surface-variant mt-1 font-bold">Seconds</span>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-surface-high flex items-center justify-between">
+          <div class="flex flex-col">
+            <span class="text-xs font-bold text-white">Rest Interval (Optional)</span>
+            <span class="text-[10px] text-on-surface-variant">Pause countdown between sets</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <input id="custom-rest-sec" type="number" min="0" max="180" value="0" oninput="syncCustomTimes()" class="w-16 h-10 bg-surface-high border border-surface-highest rounded text-center font-mono font-bold text-secondary-container outline-none"/>
+            <span class="text-xs font-mono text-on-surface-variant font-bold">SEC</span>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-surface-high flex items-center justify-between">
+          <div class="flex flex-col">
+            <span class="text-xs font-bold text-white">3-2-1 Audio Countdown</span>
+            <span class="text-[10px] text-on-surface-variant">Lead-in beeps before interval ends</span>
+          </div>
+          <input id="chk-countdown-beeps" type="checkbox" checked class="w-5 h-5 accent-primary-container cursor-pointer"/>
+        </div>
+      </div>
+
+      <button onclick="saveAndStartWorkout()" type="button" class="w-full h-12 bg-primary-container active:scale-95 text-on-primary rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer">
+        <span class="material-symbols-outlined text-[20px]">check_circle</span>
+        <span>Apply Setup & Start Drill</span>
+      </button>
+    </section>
+
+    <!-- TAB 3: 8 SOUNDS & VOLUME -->
+    <section id="tab-sound-cues" class="tab-pane hidden flex flex-col gap-3">
+      <h2 class="text-lg font-bold uppercase text-white">Audio & Haptic Calibration</h2>
+
+      <!-- Volume Customization Slider -->
+      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[20px]">volume_up</span>
+            <span class="text-xs font-bold uppercase text-white">Master Sound Volume</span>
+          </div>
+          <span id="vol-percentage-label" class="text-xs font-mono font-bold text-primary-container">180% (OVERDRIVE)</span>
+        </div>
+        <input id="vol-slider" type="range" min="30" max="250" value="180" step="5" oninput="updateMasterVolume(this.value)" class="w-full accent-primary-container h-2 bg-surface-high rounded-lg cursor-pointer"/>
+        <div class="flex justify-between text-[10px] font-mono text-on-surface-variant">
+          <span>50%</span>
+          <span>100% (Normal)</span>
+          <span class="text-primary-container font-bold">250% (Max Boost)</span>
+        </div>
+      </div>
+
+      <!-- Vibration Intensity -->
+      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary-container text-[20px]">vibration</span>
+            <span class="text-xs font-bold uppercase text-white">Vibration Shock Intensity</span>
+          </div>
+          <button onclick="triggerVibrationPattern()" class="px-2 py-0.5 rounded bg-surface-high text-[10px] font-mono uppercase font-bold text-primary-container active:scale-95">Test</button>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" onclick="setVibeIntensity('normal', this)" class="vibe-btn py-2 rounded-lg border text-xs font-mono font-bold bg-surface-high border-surface-highest text-on-surface-variant">Standard</button>
+          <button type="button" onclick="setVibeIntensity('heavy', this)" class="vibe-btn active-vibe py-2 rounded-lg border text-xs font-mono font-black bg-surface-highest border-primary-container/40 text-primary-container">Heavy</button>
+          <button type="button" onclick="setVibeIntensity('max', this)" class="vibe-btn py-2 rounded-lg border text-xs font-mono font-bold bg-surface-high border-surface-highest text-on-surface-variant">Earthquake</button>
+        </div>
+        <span class="text-[9px] text-on-surface-variant italic">Note: Android automatically silences physical vibration when phone screen is locked, but sound cues will ring loud and clear.</span>
+      </div>
+
+      <!-- 8 Diverse Acoustic Profiles -->
+      <div class="bg-surface-container rounded-xl p-3.5 border border-surface-high flex flex-col gap-2">
+        <span class="text-[10px] font-mono uppercase text-on-surface-variant font-bold">Interval Transition Cue Options</span>
+
+        <!-- Sound 1: Stadium Boom -->
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="stadium-boom" checked class="w-4 h-4 accent-primary-container" onchange="setSoundOption(this.value);"/>
+            <span class="text-xs font-mono font-bold text-white">Double Stadium 808 Boom</span>
+          </div>
+          <button onclick="event.preventDefault(); SoundVault.play('stadium-boom'); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Play</button>
+        </label>
+
+        <!-- Sound 2: Airhorn -->
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="airhorn" class="w-4 h-4 accent-primary-container" onchange="setSoundOption(this.value);"/>
+            <span class="text-xs font-mono font-bold text-white">Stadium Airhorn Blast</span>
+          </div>
+          <button onclick="event.preventDefault(); SoundVault.play('airhorn'); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Play</button>
+        </label>
+
+        <!-- Sound 3: Whistle -->
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="whistle" class="w-4 h-4 accent-primary-container" onchange="setSoundOption(this.value);"/>
+            <span class="text-xs font-mono font-bold text-white">Fox 40 Referee Whistle</span>
+          </div>
+          <button onclick="event.preventDefault(); SoundVault.play('whistle'); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Play</button>
+        </label>
+
+        <!-- Sound 4: Starter Gun -->
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="gunshot" class="w-4 h-4 accent-primary-container" onchange="setSoundOption(this.value);"/>
+            <span class="text-xs font-mono font-bold text-white">Track Starter Gun Crack</span>
+          </div>
+          <button onclick="event.preventDefault(); SoundVault.play('gunshot'); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Play</button>
+        </label>
+
+        <!-- Sound 5: Boxing Bell -->
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="bell" class="w-4 h-4 accent-primary-container" onchange="setSoundOption(this.value);"/>
+            <span class="text-xs font-mono font-bold text-white">Boxing Arena Brass Bell</span>
+          </div>
+          <button onclick="event.preventDefault(); SoundVault.play('bell'); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Play</button>
+        </label>
+
+        <!-- Sound 6: Bass Cannon -->
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="bass-cannon" class="w-4 h-4 accent-primary-container" onchange="setSoundOption(this.value);"/>
+            <span class="text-xs font-mono font-bold text-white">Heavy Sub Bass Cannon</span>
+          </div>
+          <button onclick="event.preventDefault(); SoundVault.play('bass-cannon'); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Play</button>
+        </label>
+
+        <!-- Sound 7: Naval Klaxon -->
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="klaxon" class="w-4 h-4 accent-primary-container" onchange="setSoundOption(this.value);"/>
+            <span class="text-xs font-mono font-bold text-white">Emergency Two-Tone Klaxon</span>
+          </div>
+          <button onclick="event.preventDefault(); SoundVault.play('klaxon'); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Play</button>
+        </label>
+
+        <!-- Sound 8: Digital Bleep -->
+        <label class="flex items-center justify-between p-3 rounded-lg bg-surface-high border border-surface-highest cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="cue-tone" value="digital-bleep" class="w-4 h-4 accent-primary-container" onchange="setSoundOption(this.value);"/>
+            <span class="text-xs font-mono font-bold text-white">Piercing Sports Watch Bleep</span>
+          </div>
+          <button onclick="event.preventDefault(); SoundVault.play('digital-bleep'); triggerVibrationPattern();" class="text-primary-container text-xs font-mono font-bold uppercase px-2 py-1">Play</button>
+        </label>
+      </div>
+
+      <button onclick="SoundVault.play('finale')" type="button" class="w-full h-12 bg-secondary-container active:scale-95 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow cursor-pointer">
+        <span class="material-symbols-outlined text-[20px]">campaign</span>
+        <span>Test 5× Climax Thunder Alarm</span>
+      </button>
+    </section>
+
+    <!-- TAB 4: PROTOCOLS -->
+    <section id="tab-routines" class="tab-pane hidden flex flex-col gap-2.5">
+      <h2 class="text-lg font-bold uppercase text-white">Preset Drills</h2>
+      <div class="flex flex-col gap-2">
+        <div class="p-3 bg-surface-container rounded-xl border border-surface-high flex items-center justify-between">
+          <div>
+            <span class="text-xs uppercase font-bold text-white block">Track 400m Repeats</span>
+            <span class="text-[10px] font-mono text-primary-container">12m Total • 75s Splits</span>
+          </div>
+          <button onclick="loadProtocol(12, 0, 1, 15, 'gunshot')" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md cursor-pointer active:scale-95">Load</button>
+        </div>
+
+        <div class="p-3 bg-surface-container rounded-xl border border-surface-high flex items-center justify-between">
+          <div>
+            <span class="text-xs uppercase font-bold text-white block">Tabata 20/10 Sprint</span>
+            <span class="text-[10px] font-mono text-secondary-container">4m Total • 20s Work / 10s Rest</span>
+          </div>
+          <button onclick="loadProtocol(4, 0, 0, 20, 'whistle', 10)" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md cursor-pointer active:scale-95">Load</button>
+        </div>
+
+        <div class="p-3 bg-surface-container rounded-xl border border-surface-high flex items-center justify-between">
+          <div>
+            <span class="text-xs uppercase font-bold text-white block">Boxing Jump Rope</span>
+            <span class="text-[10px] font-mono text-primary-container">9m Total • 3m Rounds</span>
+          </div>
+          <button onclick="loadProtocol(9, 0, 3, 0, 'bell')" class="px-3 py-1.5 bg-primary-container text-on-primary font-mono text-[11px] font-bold uppercase rounded-md cursor-pointer active:scale-95">Load</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: SHARE / QR -->
+    <section id="tab-install-hub" class="tab-pane hidden flex flex-col gap-3.5">
+      <div>
+        <span class="text-[10px] font-mono uppercase text-primary-container font-bold">Device Installation</span>
+        <h2 class="text-xl font-bold uppercase text-white">Scan & Share Hub</h2>
+        <p class="text-xs text-on-surface-variant">Share your live app with athletes or other devices.</p>
+      </div>
+
+      <div class="bg-surface-container rounded-xl p-4 border border-surface-high flex flex-col items-center shadow-lg">
+        <span class="text-[10px] font-mono uppercase text-on-surface-variant font-bold mb-2">Scan with Any Mobile Camera</span>
+        
+        <div class="p-3 bg-white rounded-xl shadow flex items-center justify-center">
+          <img id="qr-img" class="w-48 h-48 rounded object-contain" alt="QR Code"/>
+        </div>
+
+        <div class="w-full mt-3 flex items-center gap-1.5 bg-surface-low p-2 rounded-lg border border-surface-high">
+          <span class="material-symbols-outlined text-primary-container text-[16px]">link</span>
+          <input id="qr-url-box" type="text" oninput="updateQRImage(this.value)" class="w-full bg-transparent text-[10px] font-mono text-white outline-none" placeholder="App URL..."/>
+          <button onclick="copyCurrentURL()" class="px-2 py-1 bg-surface-high rounded text-[10px] font-mono font-bold uppercase hover:text-primary-container active:scale-95">Copy</button>
+        </div>
+      </div>
+
+      <div class="bg-surface-low p-3.5 rounded-xl border border-surface-high text-xs space-y-2">
+        <span class="text-[10px] font-mono uppercase text-primary-container font-bold block">Keep Audio Alive When Phone Locks:</span>
+        <p>1. Start the workout using the <strong>Start Drill</strong> button.</p>
+        <p>2. You can lock your phone. The background worker and Android MediaSession will keep the countdown running and play sound cues through the speaker.</p>
+        <p>3. If your Android phone kills audio after several minutes, go to your phone's <strong>Settings $\rightarrow$ Apps $\rightarrow$ Chrome (or BoomPace) $\rightarrow$ Battery</strong> and select <strong>"Unrestricted"</strong>.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="fixed bottom-0 w-full z-40 pb-safe bg-surface/95 backdrop-blur-md border-t border-surface-high shadow-2xl">
+    <div class="flex justify-around items-center h-15 px-2">
+      <button onclick="navigateTab('active-workout')" data-tab="active-workout" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-primary-container cursor-pointer">
+        <span class="material-symbols-outlined text-[22px]">timer</span>
+        <span class="text-[9px] uppercase font-bold font-mono">Workout</span>
+      </button>
+
+      <button onclick="navigateTab('interval-setup')" data-tab="interval-setup" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant cursor-pointer">
+        <span class="material-symbols-outlined text-[22px]">tune</span>
+        <span class="text-[9px] uppercase font-bold font-mono">Setup</span>
+      </button>
+
+      <button onclick="navigateTab('sound-cues')" data-tab="sound-cues" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant cursor-pointer">
+        <span class="material-symbols-outlined text-[22px]">graphic_eq</span>
+        <span class="text-[9px] uppercase font-bold font-mono">Sounds</span>
+      </button>
+
+      <button onclick="navigateTab('routines')" data-tab="routines" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant cursor-pointer">
+        <span class="material-symbols-outlined text-[22px]">bookmark</span>
+        <span class="text-[9px] uppercase font-bold font-mono">Presets</span>
+      </button>
+
+      <button onclick="navigateTab('install-hub')" data-tab="install-hub" class="nav-btn flex flex-col items-center justify-center flex-1 py-1 text-on-surface-variant cursor-pointer">
+        <span class="material-symbols-outlined text-[22px]">qr_code_scanner</span>
+        <span class="text-[9px] uppercase font-bold font-mono">Install</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-20 left-4 right-4 z-50 transform translate-y-32 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="flex items-center gap-2 p-3 bg-surface-highest border border-primary-container/40 text-white rounded-xl shadow-2xl">
+      <span id="toast-icon" class="material-symbols-outlined text-primary-container text-[20px]">check_circle</span>
+      <span id="toast-text" class="text-xs font-bold font-mono flex-1">Ready</span>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script>
+    const state = {
+      totalSec: 600,
+      workSec: 60,
+      restSec: 0,
+      currentInterval: 1,
+      isRestPhase: false,
+      intervalRemaining: 60,
+      sessionElapsed: 0,
+      isRunning: false,
+      cueTone: 'stadium-boom',
+      volumeMultiplier: 1.8, // 180% Boost
+      vibeIntensity: 'heavy',
+      wakeLock: null,
+      workoutStartTime: 0,
+      worker: null,
+      toastTimer: null
+    };
+
+    /* 1. In-Memory PCM WAV Synthesizer (Generates 8 Real Audio Files) */
+    function buildWav(sampleRate, samples) {
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
+      view.setUint32(0, 0x52494646, false); // "RIFF"
+      view.setUint32(4, 36 + samples.length * 2, true);
+      view.setUint32(8, 0x57415645, false); // "WAVE"
+      view.setUint32(12, 0x666d7420, false); // "fmt "
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM
+      view.setUint16(22, 1, true); // Mono
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      view.setUint32(36, 0x64617461, false); // "data"
+      view.setUint32(40, samples.length * 2, true);
+      for (let i = 0; i < samples.length; i++) {
+        let s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+      return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+    }
+
+    const SoundVault = {
+      audioUrls: {},
+
+      init() {
+        const sr = 22050;
+
+        // 1. Double Stadium Boom (2 punchy 808 sub drops)
+        const boomSamples = new Float32Array(sr * 0.7);
+        for (let i = 0; i < boomSamples.length; i++) {
+          let t1 = i / sr;
+          let t2 = (i - sr * 0.25) / sr;
+          let val = 0;
+          if (t1 >= 0 && t1 < 0.35) {
+            let f = 150 * Math.exp(-t1 * 10);
+            val += Math.sin(2 * Math.PI * f * t1) * Math.exp(-t1 * 7);
+          }
+          if (t2 >= 0 && t2 < 0.35) {
+            let f = 150 * Math.exp(-t2 * 10);
+            val += Math.sin(2 * Math.PI * f * t2) * Math.exp(-t2 * 7);
+          }
+          boomSamples[i] = val * 1.4;
+        }
+        this.audioUrls['stadium-boom'] = buildWav(sr, boomSamples);
+
+        // 2. Stadium Airhorn (Authentic 3-tone brass chord)
+        const hornSamples = new Float32Array(sr * 0.65);
+        for (let i = 0; i < hornSamples.length; i++) {
+          let t = i / sr;
+          let env = Math.min(1, t * 40) * Math.exp(-t * 2.2);
+          let val = (Math.sin(2 * Math.PI * 470 * t) +
+                     Math.sin(2 * Math.PI * 587 * t) +
+                     Math.sin(2 * Math.PI * 700 * t)) * 0.45;
+          // Soft square saturation for horn buzz
+          hornSamples[i] = Math.max(-0.9, Math.min(0.9, val * env * 2.5));
+        }
+        this.audioUrls['airhorn'] = buildWav(sr, hornSamples);
+
+        // 3. Fox 40 Whistle (Dual frequency modulated blast)
+        const whistleSamples = new Float32Array(sr * 0.45);
+        for (let i = 0; i < whistleSamples.length; i++) {
+          let t = i / sr;
+          let env = Math.min(1, t * 60) * Math.exp(-t * 3.5);
+          let mod = 1 + 0.1 * Math.sin(2 * Math.PI * 80 * t);
+          let val = (Math.sin(2 * Math.PI * 2900 * mod * t) +
+                     Math.sin(2 * Math.PI * 3200 * mod * t)) * 0.5;
+          whistleSamples[i] = val * env * 1.5;
+        }
+        this.audioUrls['whistle'] = buildWav(sr, whistleSamples);
+
+        // 4. Starter Gun (Double explosion transient crack)
+        const gunSamples = new Float32Array(sr * 0.5);
+        for (let i = 0; i < gunSamples.length; i++) {
+          let t1 = i / sr;
+          let t2 = (i - sr * 0.22) / sr;
+          let val = 0;
+          if (t1 >= 0 && t1 < 0.15) {
+            val += (Math.random() * 2 - 1) * Math.exp(-t1 * 35);
+          }
+          if (t2 >= 0 && t2 < 0.15) {
+            val += (Math.random() * 2 - 1) * Math.exp(-t2 * 35);
+          }
+          gunSamples[i] = val * 1.6;
+        }
+        this.audioUrls['gunshot'] = buildWav(sr, gunSamples);
+
+        // 5. Boxing Arena Bell (Metallic brass ringing inharmonic clang)
+        const bellSamples = new Float32Array(sr * 1.3);
+        for (let i = 0; i < bellSamples.length; i++) {
+          let t = i / sr;
+          let env = Math.exp(-t * 2.8);
+          let val = (Math.sin(2 * Math.PI * 440 * t) +
+                     Math.sin(2 * Math.PI * 888 * t) * 0.6 +
+                     Math.sin(2 * Math.PI * 1324 * t) * 0.4 +
+                     Math.sin(2 * Math.PI * 2650 * t) * 0.25) * env;
+          bellSamples[i] = val * 1.2;
+        }
+        this.audioUrls['bell'] = buildWav(sr, bellSamples);
+
+        // 6. Heavy Sub Bass Cannon
+        const cannonSamples = new Float32Array(sr * 0.8);
+        for (let i = 0; i < cannonSamples.length; i++) {
+          let t = i / sr;
+          let f = 110 * Math.exp(-t * 5) + 32;
+          let env = Math.exp(-t * 2.5);
+          cannonSamples[i] = Math.sin(2 * Math.PI * f * t) * env * 1.6;
+        }
+        this.audioUrls['bass-cannon'] = buildWav(sr, cannonSamples);
+
+        // 7. Naval Klaxon Siren (Two-tone rising siren)
+        const klaxonSamples = new Float32Array(sr * 0.65);
+        for (let i = 0; i < klaxonSamples.length; i++) {
+          let t = i / sr;
+          let f = t < 0.32 ? 440 : 660;
+          let env = Math.min(1, t * 50) * Math.exp(-(t % 0.32) * 2);
+          klaxonSamples[i] = Math.sin(2 * Math.PI * f * t) * env * 1.3;
+        }
+        this.audioUrls['klaxon'] = buildWav(sr, klaxonSamples);
+
+        // 8. Digital Sports Watch Bleep
+        const bleepSamples = new Float32Array(sr * 0.25);
+        for (let i = 0; i < bleepSamples.length; i++) {
+          let t = i / sr;
+          let env = Math.min(1, t * 80) * Math.exp(-t * 12);
+          bleepSamples[i] = Math.sin(2 * Math.PI * 1800 * t) * env * 1.4;
+        }
+        this.audioUrls['digital-bleep'] = buildWav(sr, bleepSamples);
+
+        // 9. Countdown Beep (3-2-1)
+        const leadBeepSamples = new Float32Array(sr * 0.1);
+        for (let i = 0; i < leadBeepSamples.length; i++) {
+          let t = i / sr;
+          leadBeepSamples[i] = Math.sin(2 * Math.PI * 950 * t) * Math.exp(-t * 25) * 1.3;
+        }
+        this.audioUrls['countdown-beep'] = buildWav(sr, leadBeepSamples);
+
+        // 10. Finale Climax (5 Thunderous Rolling Blasts)
+        const finaleSamples = new Float32Array(sr * 1.6);
+        for (let i = 0; i < finaleSamples.length; i++) {
+          let val = 0;
+          [0, 0.28, 0.56, 0.84, 1.15].forEach((d, idx) => {
+            let t = (i - sr * d) / sr;
+            if (t >= 0 && t < 0.4) {
+              let f = (160 + idx * 15) * Math.exp(-t * 8);
+              val += Math.sin(2 * Math.PI * f * t) * Math.exp(-t * 6);
+            }
+          });
+          finaleSamples[i] = Math.max(-1, Math.min(1, val * 1.4));
+        }
+        this.audioUrls['finale'] = buildWav(sr, finaleSamples);
+
+        // Set up the background keep-alive audio loop with inaudible carrier
+        const carrierSamples = new Float32Array(sr * 10);
+        for (let i = 0; i < carrierSamples.length; i++) {
+          // Low 18Hz carrier at ultra-low level (keeps audio hardware awake in lockscreen)
+          carrierSamples[i] = Math.sin(2 * Math.PI * 18 * (i / sr)) * 0.003;
+        }
+        const anchor = document.getElementById('native-audio-anchor');
+        if (anchor) {
+          anchor.src = buildWav(sr, carrierSamples);
+        }
+      },
+
+      play(name) {
+        const url = this.audioUrls[name] || this.audioUrls['stadium-boom'];
+        if (!url) return;
+        try {
+          const snd = new Audio(url);
+          snd.volume = Math.min(1.0, state.volumeMultiplier / 1.5);
+          snd.play().catch(() => {});
+        } catch(e) {}
+      }
+    };
+
+    /* 2. Isolated Web Worker Timer (Immune to Screen Lock Throttling) */
+    function initWorkerTimer() {
+      const workerBlobCode = `
+        let timer = null;
+        self.onmessage = function(e) {
+          if (e.data === 'START') {
+            if (timer) clearInterval(timer);
+            timer = setInterval(() => {
+              self.postMessage('TICK');
+            }, 1000);
+          } else if (e.data === 'STOP') {
+            if (timer) {
+              clearInterval(timer);
+              timer = null;
+            }
+          }
+        };
+      `;
+      const blob = new Blob([workerBlobCode], { type: 'application/javascript' });
+      state.worker = new Worker(URL.createObjectURL(blob));
+      state.worker.onmessage = function(e) {
+        if (e.data === 'TICK') {
+          handleClockTick();
+        }
+      };
+    }
+
+    /* 3. Screen Wake Lock */
+    async function acquireWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          state.wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {}
+    }
+
+    function releaseWakeLock() {
+      if (state.wakeLock) {
+        state.wakeLock.release().catch(() => {});
+        state.wakeLock = null;
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && state.isRunning) {
+        acquireWakeLock();
+      }
+    });
+
+    /* 4. High-Impact Vibration Patterns */
+    function triggerVibrationPattern() {
+      if (!navigator.vibrate) return;
+      if (state.vibeIntensity === 'normal') {
+        navigator.vibrate([180, 80, 180]);
+      } else if (state.vibeIntensity === 'heavy') {
+        navigator.vibrate([350, 80, 350, 80, 500]);
+      } else if (state.vibeIntensity === 'max') {
+        navigator.vibrate([700, 100, 700, 100, 1000]);
+      }
+    }
+
+    function setVibeIntensity(level, btn) {
+      state.vibeIntensity = level;
+      document.querySelectorAll('.vibe-btn').forEach(b => {
+        b.className = 'vibe-btn py-2 rounded-lg border text-xs font-mono font-bold bg-surface-high border-surface-highest text-on-surface-variant';
+      });
+      btn.className = 'vibe-btn active-vibe py-2 rounded-lg border text-xs font-mono font-black bg-surface-highest border-primary-container/40 text-primary-container';
+      triggerVibrationPattern();
+      showToast(`Vibration: ${level.toUpperCase()}`, 'vibration');
+    }
+
+    function updateMasterVolume(val) {
+      state.volumeMultiplier = val / 100;
+      const lbl = document.getElementById('vol-percentage-label');
+      if (lbl) {
+        lbl.textContent = `${val}% ${val > 100 ? '(OVERDRIVE)' : ''}`;
+      }
+    }
+
+    function setSoundOption(val) {
+      state.cueTone = val;
+      const pill = document.getElementById('hud-cue-type');
+      if (pill) {
+        pill.textContent = val.toUpperCase().replace('-', ' ');
+      }
+      SoundVault.play(val);
+      showToast(`Selected Sound: ${val.toUpperCase()}`, 'volume_up');
+    }
+
+    /* 5. Real-Time Drill Logic */
+    function getTotalIntervals() {
+      const cycle = state.workSec + state.restSec;
+      return Math.max(1, Math.floor(state.totalSec / cycle));
+    }
+
+    function formatTime(sec) {
+      if (isNaN(sec) || sec < 0) sec = 0;
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function syncCustomTimes() {
+      const tMin = parseInt(document.getElementById('custom-total-min')?.value || '10', 10);
+      const tSec = parseInt(document.getElementById('custom-total-sec')?.value || '0', 10);
+      const wMin = parseInt(document.getElementById('custom-work-min')?.value || '1', 10);
+      const wSec = parseInt(document.getElementById('custom-work-sec')?.value || '0', 10);
+      const rSec = parseInt(document.getElementById('custom-rest-sec')?.value || '0', 10);
+
+      state.totalSec = Math.max(10, ((isNaN(tMin)?10:tMin) * 60) + (isNaN(tSec)?0:tSec));
+      state.workSec = Math.max(5, ((isNaN(wMin)?1:wMin) * 60) + (isNaN(wSec)?0:wSec));
+      state.restSec = Math.max(0, isNaN(rSec)?0:rSec);
+
+      const count = getTotalIntervals();
+      const badge = document.getElementById('calculated-intervals-badge');
+      if (badge) badge.textContent = `${count} INTERVALS`;
+      updateHUD();
+    }
+
+    function saveAndStartWorkout() {
+      syncCustomTimes();
+      resetTimer();
+      navigateTab('active-workout');
+      toggleTimer();
+      showToast('Drill applied & started!', 'play_circle');
+    }
+
+    function loadProtocol(tMin, tSec, wMin, wSec, tone, rSec = 0) {
+      const elTMin = document.getElementById('custom-total-min');
+      const elTSec = document.getElementById('custom-total-sec');
+      const elWMin = document.getElementById('custom-work-min');
+      const elWSec = document.getElementById('custom-work-sec');
+      const elRSec = document.getElementById('custom-rest-sec');
+
+      if (elTMin) elTMin.value = tMin;
+      if (elTSec) elTSec.value = tSec;
+      if (elWMin) elWMin.value = wMin;
+      if (elWSec) elWSec.value = wSec;
+      if (elRSec) elRSec.value = rSec;
+
+      state.cueTone = tone;
+      setSoundOption(tone);
+      saveAndStartWorkout();
+    }
+
+    function updateHUD() {
+      const total = getTotalIntervals();
+      const digitsEl = document.getElementById('interval-digits');
+      const elapsedEl = document.getElementById('session-elapsed');
+      const remainingEl = document.getElementById('session-remaining');
+      const capEl = document.getElementById('hud-total-cap');
+      const badgeEl = document.getElementById('hud-interval-badge');
+
+      if (digitsEl) digitsEl.textContent = formatTime(state.intervalRemaining);
+      if (elapsedEl) elapsedEl.textContent = formatTime(state.sessionElapsed);
+      if (remainingEl) remainingEl.textContent = formatTime(Math.max(0, state.totalSec - state.sessionElapsed));
+      if (capEl) capEl.textContent = `${formatTime(state.totalSec)} CAP`;
+      if (badgeEl) badgeEl.textContent = `INTERVAL ${state.currentInterval} OF ${total}`;
+
+      const phaseLabel = document.getElementById('hud-phase-label');
+      if (phaseLabel) {
+        phaseLabel.textContent = state.isRestPhase ? 'REST PHASE' : 'WORK PHASE';
+        phaseLabel.className = state.isRestPhase ? 'text-[10px] uppercase font-mono font-bold text-secondary-container' : 'text-[10px] uppercase font-mono font-bold text-on-surface-variant';
+      }
+
+      const activeCycle = state.isRestPhase ? state.restSec : state.workSec;
+      const intRing = document.getElementById('interval-ring');
+      if (intRing && activeCycle > 0) {
+        intRing.style.strokeDashoffset = 464.95 * (1 - (state.intervalRemaining / activeCycle));
+        intRing.setAttribute('stroke', state.isRestPhase ? '#ff571a' : '#c3f400');
+      }
+
+      const sessRing = document.getElementById('session-ring');
+      if (sessRing && state.totalSec > 0) {
+        sessRing.style.strokeDashoffset = 565.48 * (1 - (state.sessionElapsed / state.totalSec));
+      }
+    }
+
+    function renderGrid() {
+      const container = document.getElementById('interval-grid');
+      if (!container) return;
+      container.innerHTML = '';
+      const total = getTotalIntervals();
+
+      for (let i = 1; i <= total; i++) {
+        const el = document.createElement('div');
+        el.className = 'h-8 rounded flex items-center justify-center font-mono text-[10px] font-bold';
+        if (i < state.currentInterval) {
+          el.className += ' bg-primary-container text-on-primary';
+          el.textContent = '✓';
+        } else if (i === state.currentInterval) {
+          el.className += ' bg-surface-highest text-white border border-primary-container';
+          el.textContent = i;
+        } else if (i === total) {
+          el.className += ' bg-secondary-container text-white';
+          el.textContent = i;
+        } else {
+          el.className += ' bg-surface-high text-on-surface-variant';
+          el.textContent = i;
+        }
+        container.appendChild(el);
+      }
+    }
+
+    function handleClockTick() {
+      if (!state.isRunning) return;
+
+      const now = Date.now();
+      const realElapsed = Math.floor((now - state.workoutStartTime) / 1000);
+      state.sessionElapsed = realElapsed;
+      state.intervalRemaining--;
+
+      // 3-2-1 Lead-in Beep
+      const beepsEnabled = document.getElementById('chk-countdown-beeps')?.checked;
+      if (beepsEnabled && state.intervalRemaining <= 3 && state.intervalRemaining > 0) {
+        SoundVault.play('countdown-beep');
+      }
+
+      if (state.intervalRemaining <= 0) {
+        if (state.restSec > 0 && !state.isRestPhase) {
+          state.isRestPhase = true;
+          state.intervalRemaining = state.restSec;
+          SoundVault.play('countdown-beep');
+          triggerVibrationPattern();
+          showToast('Rest Phase Started', 'snooze');
+        } else {
+          state.isRestPhase = false;
+          if (state.currentInterval >= getTotalIntervals() || state.sessionElapsed >= state.totalSec) {
+            state.isRunning = false;
+            if (state.worker) state.worker.postMessage('STOP');
+            SoundVault.play('finale');
+            triggerFinalVibration();
+            releaseWakeLock();
+            pauseBgAudio();
+            showToast('WORKOUT FINISHED!', 'emoji_events');
+            const txt = document.getElementById('btn-timer-text');
+            const icon = document.getElementById('btn-timer-icon');
+            if (txt) txt.textContent = 'Restart Drill';
+            if (icon) icon.textContent = 'play_arrow';
+            return;
+          } else {
+            state.currentInterval++;
+            state.intervalRemaining = state.workSec;
+            SoundVault.play(state.cueTone);
+            triggerVibrationPattern();
+            renderGrid();
+          }
+        }
+      }
+      updateHUD();
+    }
+
+    function playBgAudio() {
+      const audio = document.getElementById('native-audio-anchor');
+      if (audio) {
+        audio.play().catch(() => {});
+      }
+    }
+
+    function pauseBgAudio() {
+      const audio = document.getElementById('native-audio-anchor');
+      if (audio) {
+        audio.pause();
+      }
+    }
+
+    function toggleTimer() {
+      state.isRunning = !state.isRunning;
+      const text = document.getElementById('btn-timer-text');
+      const icon = document.getElementById('btn-timer-icon');
+
+      if (state.isRunning) {
+        state.workoutStartTime = Date.now() - (state.sessionElapsed * 1000);
+        if (state.worker) state.worker.postMessage('START');
+        if (text) text.textContent = 'Pause Drill';
+        if (icon) icon.textContent = 'pause';
+        acquireWakeLock();
+        playBgAudio();
+
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: `BoomPace: Interval ${state.currentInterval}`,
+            artist: '110dB Audio Cues Active',
+            album: 'Sports Interval Timer'
+          });
+          navigator.mediaSession.setActionHandler('play', () => toggleTimer());
+          navigator.mediaSession.setActionHandler('pause', () => toggleTimer());
+          navigator.mediaSession.setActionHandler('nexttrack', () => skipInterval());
+        }
+      } else {
+        if (state.worker) state.worker.postMessage('STOP');
+        if (text) text.textContent = 'Resume Drill';
+        if (icon) icon.textContent = 'play_arrow';
+        releaseWakeLock();
+        pauseBgAudio();
+      }
+    }
+
+    function skipInterval() {
+      if (state.currentInterval < getTotalIntervals()) {
+        state.isRestPhase = false;
+        state.currentInterval++;
+        state.intervalRemaining = state.workSec;
+        SoundVault.play(state.cueTone);
+        triggerVibrationPattern();
+        renderGrid();
+        updateHUD();
+      } else {
+        SoundVault.play('finale');
+        triggerFinalVibration();
+      }
+    }
+
+    function resetTimer() {
+      state.isRunning = false;
+      if (state.worker) state.worker.postMessage('STOP');
+      state.currentInterval = 1;
+      state.isRestPhase = false;
+      state.sessionElapsed = 0;
+      state.intervalRemaining = state.workSec;
+      releaseWakeLock();
+      pauseBgAudio();
+      const txt = document.getElementById('btn-timer-text');
+      const icon = document.getElementById('btn-timer-icon');
+      if (txt) txt.textContent = 'Start Drill';
+      if (icon) icon.textContent = 'play_arrow';
+      renderGrid();
+      updateHUD();
+    }
+
+    function triggerFinalVibration() {
+      if (!navigator.vibrate) return;
+      navigator.vibrate([400, 100, 400, 100, 600, 150, 1200]);
+    }
+
+    function navigateTab(tabKey) {
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      const target = document.getElementById(`tab-${tabKey}`);
+      if (target) target.classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        const isMatch = btn.getAttribute('data-tab') === tabKey;
+        btn.classList.toggle('text-primary-container', isMatch);
+        btn.classList.toggle('text-on-surface-variant', !isMatch);
+      });
+
+      if (tabKey === 'install-hub') initQR();
+    }
+
+    function initQR() {
+      const urlBox = document.getElementById('qr-url-box');
+      let current = window.location.href;
+      if (urlBox && !urlBox.value) {
+        urlBox.value = current;
+      }
+      updateQRImage(urlBox ? urlBox.value : current);
+    }
+
+    function updateQRImage(url) {
+      const img = document.getElementById('qr-img');
+      if (img && url) {
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+      }
+    }
+
+    function copyCurrentURL() {
+      const url = document.getElementById('qr-url-box')?.value || window.location.href;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => showToast('Link copied!', 'done_all'));
+      }
+    }
+
+    function showToast(msg, icon = 'check_circle') {
+      const t = document.getElementById('toast');
+      const txt = document.getElementById('toast-text');
+      const ico = document.getElementById('toast-icon');
+      if (!t || !txt || !ico) return;
+      txt.textContent = msg;
+      ico.textContent = icon;
+      t.classList.remove('translate-y-32', 'opacity-0');
+      t.classList.add('translate-y-0', 'opacity-100');
+      clearTimeout(state.toastTimer);
+      state.toastTimer = setTimeout(() => {
+        t.classList.remove('translate-y-0', 'opacity-100');
+        t.classList.add('translate-y-32', 'opacity-0');
+      }, 2200);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      SoundVault.init();
+      initWorkerTimer();
+      syncCustomTimes();
+      resetTimer();
+      initQR();
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
