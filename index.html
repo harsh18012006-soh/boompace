@@ -11,7 +11,7 @@
   <title>BoomPace • Custom Sports Interval Timer</title>
 
   <!-- PWA Manifest Data URI -->
-  <link rel="manifest" href='data:application/manifest+json,{"name":"BoomPace Timer","short_name":"BoomPace","start_url":".","display":"standalone","background_color":"#10141a","theme_color":"#10141a"}'/>
+  <link rel="manifest" href="./manifest.json"/> href='data:application/manifest+json,{"name":"BoomPace Timer","short_name":"BoomPace","start_url":".","display":"standalone","background_color":"#10141a","theme_color":"#10141a"}'/>
 
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -807,6 +807,10 @@
       document.body.addEventListener('touchstart', () => AudioEngine.init(), { once: true });
       document.body.addEventListener('click', () => AudioEngine.init(), { once: true });
     });
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
   </script>
 </body>
 </html>
