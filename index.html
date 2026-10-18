@@ -116,8 +116,8 @@
 
 <body class="bg-surface antialiased flex flex-col min-h-screen">
 
-  <!-- Foreground Background Audio Channel (Kept active throughout drill) -->
-  <audio id="native-audio-player" loop preload="auto"></audio>
+  <!-- Continuous Audio Anchor (Maintains Android Audio Hardware Focus) -->
+  <audio id="native-audio-anchor" loop preload="auto"></audio>
 
   <!-- Flash Screen Strobe -->
   <div id="flash-overlay" class="fixed inset-0 pointer-events-none z-[100] bg-secondary-container opacity-0 transition-opacity"></div>
@@ -239,7 +239,6 @@
         </div>
 
         <div class="grid grid-cols-2 gap-3 py-1">
-          <!-- Minutes Column -->
           <div class="flex flex-col items-center">
             <span class="text-[9px] uppercase font-mono text-on-surface-variant mb-1 font-bold">Minutes (0 - 120)</span>
             <div class="roller-wheel-box w-full">
@@ -247,7 +246,6 @@
               <div class="roller-lens"></div>
             </div>
           </div>
-          <!-- Seconds Column -->
           <div class="flex flex-col items-center">
             <span class="text-[9px] uppercase font-mono text-on-surface-variant mb-1 font-bold">Seconds (00 - 55)</span>
             <div class="roller-wheel-box w-full">
@@ -333,11 +331,12 @@
         </div>
         <div class="grid grid-cols-3 gap-2">
           <button type="button" onclick="setVibeIntensity('normal', this)" class="vibe-btn py-2 rounded-lg border text-xs font-mono font-bold bg-surface-high border-surface-highest text-on-surface-variant">Standard</button>
-          <button type="button" onclick="setVibeIntensity('heavy', this)" class="vibe-btn active-vibe py-2 rounded-lg border text-xs font-mono font-black bg-surface-highest border-primary-container/40 text-primary-container">Heavy</button>
-          <button type="button" onclick="setVibeIntensity('max', this)" class="vibe-btn py-2 rounded-lg border text-xs font-mono font-bold bg-surface-high border-surface-highest text-on-surface-variant">Earthquake</button>
+          <button type="button" onclick="setVibeIntensity('heavy', this)" class="vibe-btn py-2 rounded-lg border text-xs font-mono font-bold bg-surface-high border-surface-highest text-on-surface-variant">Heavy</button>
+          <button type="button" onclick="setVibeIntensity('max', this)" class="vibe-btn active-vibe py-2 rounded-lg border text-xs font-mono font-black bg-surface-highest border-primary-container/40 text-primary-container">Earthquake</button>
         </div>
       </div>
 
+      <!-- 10 Sound Options -->
       <div class="bg-surface-container rounded-xl p-3.5 border border-surface-high flex flex-col gap-2">
         <span class="text-[10px] font-mono uppercase text-on-surface-variant font-bold">10 High-Decibel Sound Alternatives</span>
 
@@ -523,7 +522,7 @@
 
   <!-- JAVASCRIPT APPLICATION LOGIC -->
   <script>
-    const STORAGE_KEY = 'boompace_saved_profile_v2';
+    const STORAGE_KEY = 'boompace_saved_profile_v3';
 
     const state = {
       totalMin: 10,
@@ -538,14 +537,14 @@
       isRunning: false,
       cueTone: 'stadium-boom',
       volumeMultiplier: 1.8,
-      vibeIntensity: 'heavy',
+      vibeIntensity: 'max', // Default to Maximum Earthquake
       wakeLock: null,
       workoutStartTime: 0,
       worker: null,
       toastTimer: null
     };
 
-    /* 1. Persistent Storage Engine (Never resets to 10:00 unless chosen) */
+    /* 1. Persistent Storage Engine (Auto-saves every change) */
     function saveSettings() {
       try {
         const payload = {
@@ -596,7 +595,6 @@
         el.appendChild(item);
       }
 
-      // Snap scroll listener
       let scrollTimer = null;
       el.onscroll = () => {
         clearTimeout(scrollTimer);
@@ -613,7 +611,6 @@
         }, 60);
       };
 
-      // Set initial scroll position
       setTimeout(() => {
         scrollRollerTo(containerId, currentVal);
       }, 50);
@@ -633,25 +630,21 @@
     }
 
     function initAllRollers() {
-      // Total Minutes Roller (0 to 120)
       buildRoller('roller-total-min', 0, 120, 1, state.totalMin, (val) => {
         state.totalMin = val;
         onSettingsChanged();
       });
 
-      // Total Seconds Roller (0 to 55, step 5)
       buildRoller('roller-total-sec', 0, 55, 5, state.totalSec, (val) => {
         state.totalSec = val;
         onSettingsChanged();
       });
 
-      // Work Minutes Roller (0 to 30)
       buildRoller('roller-work-min', 0, 30, 1, state.workMin, (val) => {
         state.workMin = val;
         onSettingsChanged();
       });
 
-      // Work Seconds Roller (5 to 55, step 5)
       buildRoller('roller-work-sec', 5, 55, 5, state.workSec || 5, (val) => {
         state.workSec = val;
         onSettingsChanged();
@@ -674,7 +667,6 @@
       const restInput = document.getElementById('custom-rest-sec');
       if (restInput) state.restSec = Math.max(0, parseInt(restInput.value || '0', 10));
 
-      // Readout updates
       const totalReadout = document.getElementById('badge-total-roller-readout');
       if (totalReadout) totalReadout.textContent = `${state.totalMin}m ${String(state.totalSec).padStart(2, '0')}s`;
 
@@ -685,7 +677,45 @@
       updateHUD();
     }
 
-    /* 3. Real Audio Synthesizer (Zero-Amplitude Anchor + Locked Screen Playback) */
+    /* 3. Web Audio Engine & Pre-Decoded PCM Buffers */
+    const AudioEngine = {
+      ctx: null,
+      masterGain: null,
+      compressor: null,
+
+      init() {
+        try {
+          if (!this.ctx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+              this.ctx = new AudioContext();
+              this.compressor = this.ctx.createDynamicsCompressor();
+              this.compressor.threshold.setValueAtTime(-18, this.ctx.currentTime);
+              this.compressor.knee.setValueAtTime(24, this.ctx.currentTime);
+              this.compressor.ratio.setValueAtTime(12, this.ctx.currentTime);
+              this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+              this.compressor.release.setValueAtTime(0.2, this.ctx.currentTime);
+
+              this.masterGain = this.ctx.createGain();
+              this.masterGain.gain.setValueAtTime(state.volumeMultiplier, this.ctx.currentTime);
+
+              this.compressor.connect(this.masterGain);
+              this.masterGain.connect(this.ctx.destination);
+            }
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        } catch (e) {}
+      },
+
+      setVolume(val) {
+        if (this.masterGain && this.ctx) {
+          this.masterGain.gain.setValueAtTime(val, this.ctx.currentTime);
+        }
+      }
+    };
+
     function buildWav(sampleRate, samples) {
       const buffer = new ArrayBuffer(44 + samples.length * 2);
       const view = new DataView(buffer);
@@ -710,17 +740,32 @@
     }
 
     const SoundVault = {
+      buffers: {},
       audioUrls: {},
-      silentUrl: null,
 
       init() {
+        AudioEngine.init();
         const sr = 22050;
 
-        // 1. Double Stadium Boom
-        const boomSamples = new Float32Array(sr * 0.7);
-        for (let i = 0; i < boomSamples.length; i++) {
-          let t1 = i / sr;
-          let t2 = (i - sr * 0.25) / sr;
+        const synthSample = (lenSec, generator) => {
+          const samples = new Float32Array(Math.floor(sr * lenSec));
+          for (let i = 0; i < samples.length; i++) {
+            samples[i] = generator(i / sr, i);
+          }
+          return samples;
+        };
+
+        const createBufferFromSamples = (samples) => {
+          if (!AudioEngine.ctx) return null;
+          const buf = AudioEngine.ctx.createBuffer(1, samples.length, sr);
+          buf.copyToChannel(samples, 0);
+          return buf;
+        };
+
+        // 1. Stadium Boom (Double 808 sub drops)
+        const boomSamples = synthSample(0.7, (t) => {
+          let t1 = t;
+          let t2 = t - 0.25;
           let val = 0;
           if (t1 >= 0 && t1 < 0.35) {
             let f = 150 * Math.exp(-t1 * 10);
@@ -730,160 +775,153 @@
             let f = 150 * Math.exp(-t2 * 10);
             val += Math.sin(2 * Math.PI * f * t2) * Math.exp(-t2 * 7);
           }
-          boomSamples[i] = val * 1.5;
-        }
+          return val * 1.5;
+        });
+        this.buffers['stadium-boom'] = createBufferFromSamples(boomSamples);
         this.audioUrls['stadium-boom'] = buildWav(sr, boomSamples);
 
-        // 2. Stadium Airhorn
-        const hornSamples = new Float32Array(sr * 0.65);
-        for (let i = 0; i < hornSamples.length; i++) {
-          let t = i / sr;
+        // 2. Airhorn
+        const hornSamples = synthSample(0.65, (t) => {
           let env = Math.min(1, t * 40) * Math.exp(-t * 2.2);
           let val = (Math.sin(2 * Math.PI * 470 * t) +
                      Math.sin(2 * Math.PI * 587 * t) +
                      Math.sin(2 * Math.PI * 700 * t)) * 0.45;
-          hornSamples[i] = Math.max(-0.9, Math.min(0.9, val * env * 2.5));
-        }
+          return Math.max(-0.9, Math.min(0.9, val * env * 2.5));
+        });
+        this.buffers['airhorn'] = createBufferFromSamples(hornSamples);
         this.audioUrls['airhorn'] = buildWav(sr, hornSamples);
 
-        // 3. Fox 40 Whistle
-        const whistleSamples = new Float32Array(sr * 0.45);
-        for (let i = 0; i < whistleSamples.length; i++) {
-          let t = i / sr;
+        // 3. Whistle
+        const whistleSamples = synthSample(0.45, (t) => {
           let env = Math.min(1, t * 60) * Math.exp(-t * 3.5);
           let mod = 1 + 0.1 * Math.sin(2 * Math.PI * 80 * t);
           let val = (Math.sin(2 * Math.PI * 2900 * mod * t) +
                      Math.sin(2 * Math.PI * 3200 * mod * t)) * 0.5;
-          whistleSamples[i] = val * env * 1.5;
-        }
+          return val * env * 1.5;
+        });
+        this.buffers['whistle'] = createBufferFromSamples(whistleSamples);
         this.audioUrls['whistle'] = buildWav(sr, whistleSamples);
 
-        // 4. Starter Gun Crack
-        const gunSamples = new Float32Array(sr * 0.5);
-        for (let i = 0; i < gunSamples.length; i++) {
-          let t1 = i / sr;
-          let t2 = (i - sr * 0.22) / sr;
+        // 4. Gunshot
+        const gunSamples = synthSample(0.5, (t) => {
+          let t1 = t;
+          let t2 = t - 0.22;
           let val = 0;
           if (t1 >= 0 && t1 < 0.15) val += (Math.random() * 2 - 1) * Math.exp(-t1 * 35);
           if (t2 >= 0 && t2 < 0.15) val += (Math.random() * 2 - 1) * Math.exp(-t2 * 35);
-          gunSamples[i] = val * 1.6;
-        }
+          return val * 1.6;
+        });
+        this.buffers['gunshot'] = createBufferFromSamples(gunSamples);
         this.audioUrls['gunshot'] = buildWav(sr, gunSamples);
 
         // 5. Boxing Bell
-        const bellSamples = new Float32Array(sr * 1.3);
-        for (let i = 0; i < bellSamples.length; i++) {
-          let t = i / sr;
+        const bellSamples = synthSample(1.3, (t) => {
           let env = Math.exp(-t * 2.8);
           let val = (Math.sin(2 * Math.PI * 440 * t) +
                      Math.sin(2 * Math.PI * 888 * t) * 0.6 +
                      Math.sin(2 * Math.PI * 1324 * t) * 0.4 +
                      Math.sin(2 * Math.PI * 2650 * t) * 0.25) * env;
-          bellSamples[i] = val * 1.3;
-        }
+          return val * 1.3;
+        });
+        this.buffers['bell'] = createBufferFromSamples(bellSamples);
         this.audioUrls['bell'] = buildWav(sr, bellSamples);
 
-        // 6. Sub Bass Cannon
-        const cannonSamples = new Float32Array(sr * 0.8);
-        for (let i = 0; i < cannonSamples.length; i++) {
-          let t = i / sr;
+        // 6. Bass Cannon
+        const cannonSamples = synthSample(0.8, (t) => {
           let f = 110 * Math.exp(-t * 5) + 32;
-          cannonSamples[i] = Math.sin(2 * Math.PI * f * t) * Math.exp(-t * 2.5) * 1.6;
-        }
+          return Math.sin(2 * Math.PI * f * t) * Math.exp(-t * 2.5) * 1.6;
+        });
+        this.buffers['bass-cannon'] = createBufferFromSamples(cannonSamples);
         this.audioUrls['bass-cannon'] = buildWav(sr, cannonSamples);
 
-        // 7. Naval Klaxon Siren
-        const klaxonSamples = new Float32Array(sr * 0.65);
-        for (let i = 0; i < klaxonSamples.length; i++) {
-          let t = i / sr;
+        // 7. Klaxon Siren
+        const klaxonSamples = synthSample(0.65, (t) => {
           let f = t < 0.32 ? 440 : 660;
           let env = Math.min(1, t * 50) * Math.exp(-(t % 0.32) * 2);
-          klaxonSamples[i] = Math.sin(2 * Math.PI * f * t) * env * 1.3;
-        }
+          return Math.sin(2 * Math.PI * f * t) * env * 1.3;
+        });
+        this.buffers['klaxon'] = createBufferFromSamples(klaxonSamples);
         this.audioUrls['klaxon'] = buildWav(sr, klaxonSamples);
 
         // 8. Basketball Buzzer
-        const buzzerSamples = new Float32Array(sr * 0.6);
-        for (let i = 0; i < buzzerSamples.length; i++) {
-          let t = i / sr;
+        const buzzerSamples = synthSample(0.6, (t) => {
           let env = Math.min(1, t * 60) * Math.exp(-t * 1.8);
           let val = Math.sin(2 * Math.PI * 180 * t) > 0 ? 0.7 : -0.7;
-          buzzerSamples[i] = val * env * 1.2;
-        }
+          return val * env * 1.2;
+        });
+        this.buffers['buzzer'] = createBufferFromSamples(buzzerSamples);
         this.audioUrls['buzzer'] = buildWav(sr, buzzerSamples);
 
-        // 9. Boxing Woodblock Clapper
-        const clapperSamples = new Float32Array(sr * 0.5);
-        for (let i = 0; i < clapperSamples.length; i++) {
-          let t1 = i / sr;
-          let t2 = (i - sr * 0.2) / sr;
+        // 9. Woodblock Clapper
+        const clapperSamples = synthSample(0.5, (t) => {
+          let t1 = t;
+          let t2 = t - 0.2;
           let val = 0;
           if (t1 >= 0 && t1 < 0.1) val += Math.sin(2 * Math.PI * 800 * t1) * Math.exp(-t1 * 50);
           if (t2 >= 0 && t2 < 0.1) val += Math.sin(2 * Math.PI * 800 * t2) * Math.exp(-t2 * 50);
-          clapperSamples[i] = val * 1.8;
-        }
+          return val * 1.8;
+        });
+        this.buffers['clapper'] = createBufferFromSamples(clapperSamples);
         this.audioUrls['clapper'] = buildWav(sr, clapperSamples);
 
         // 10. Digital Watch Bleep
-        const bleepSamples = new Float32Array(sr * 0.25);
-        for (let i = 0; i < bleepSamples.length; i++) {
-          let t = i / sr;
+        const bleepSamples = synthSample(0.25, (t) => {
           let env = Math.min(1, t * 80) * Math.exp(-t * 12);
-          bleepSamples[i] = Math.sin(2 * Math.PI * 1800 * t) * env * 1.4;
-        }
+          return Math.sin(2 * Math.PI * 1800 * t) * env * 1.4;
+        });
+        this.buffers['digital-bleep'] = createBufferFromSamples(bleepSamples);
         this.audioUrls['digital-bleep'] = buildWav(sr, bleepSamples);
 
         // Finale 5x Climax
-        const finaleSamples = new Float32Array(sr * 1.6);
-        for (let i = 0; i < finaleSamples.length; i++) {
+        const finaleSamples = synthSample(1.6, (t) => {
           let val = 0;
           [0, 0.28, 0.56, 0.84, 1.15].forEach((d, idx) => {
-            let t = (i - sr * d) / sr;
-            if (t >= 0 && t < 0.4) {
-              let f = (160 + idx * 15) * Math.exp(-t * 8);
-              val += Math.sin(2 * Math.PI * f * t) * Math.exp(-t * 6);
+            let ti = t - d;
+            if (ti >= 0 && ti < 0.4) {
+              let f = (160 + idx * 15) * Math.exp(-ti * 8);
+              val += Math.sin(2 * Math.PI * f * ti) * Math.exp(-ti * 6);
             }
           });
-          finaleSamples[i] = Math.max(-1, Math.min(1, val * 1.5));
-        }
+          return Math.max(-1, Math.min(1, val * 1.5));
+        });
+        this.buffers['finale'] = createBufferFromSamples(finaleSamples);
         this.audioUrls['finale'] = buildWav(sr, finaleSamples);
 
-        // True Digital Silence (zero amplitude, no buzz, no vibration)
-        const pureSilentSamples = new Float32Array(sr * 2);
-        this.silentUrl = buildWav(sr, pureSilentSamples);
-
-        const player = document.getElementById('native-audio-player');
-        if (player) {
-          player.src = this.silentUrl;
+        // Set up the inaudible background keep-alive anchor
+        // Amplitude is 0.00003 (completely silent to the human ear & zero speaker vibration, but keeps Android's audio pipeline active)
+        const anchorSamples = synthSample(3, (t, i) => Math.sin(2 * Math.PI * 20 * t) * 0.00003);
+        const anchor = document.getElementById('native-audio-anchor');
+        if (anchor) {
+          anchor.src = buildWav(sr, anchorSamples);
         }
       },
 
-      // Reuses the ACTIVE foreground audio element so Android NEVER blocks it in lock screen!
+      // Plays directly via OS Audio hardware thread without changing .src!
       play(name) {
-        const url = this.audioUrls[name] || this.audioUrls['stadium-boom'];
-        const player = document.getElementById('native-audio-player');
-        if (!player || !url) return;
+        AudioEngine.init();
+        const buf = this.buffers[name] || this.buffers['stadium-boom'];
+        if (buf && AudioEngine.ctx) {
+          try {
+            const src = AudioEngine.ctx.createBufferSource();
+            src.buffer = buf;
+            src.connect(AudioEngine.masterGain);
+            src.start(0);
+          } catch(e) {}
+        }
 
-        try {
-          player.loop = false;
-          player.src = url;
-          player.currentTime = 0;
-          player.volume = Math.min(1.0, state.volumeMultiplier);
-          player.play().catch(() => {});
-
-          // When cue finishes, switch back to silent loop to maintain audio session
-          player.onended = () => {
-            if (state.isRunning) {
-              player.src = this.silentUrl;
-              player.loop = true;
-              player.play().catch(() => {});
-            }
-          };
-        } catch(e) {}
+        // Secondary fallback to guarantee playback on older webviews
+        const url = this.audioUrls[name];
+        if (url) {
+          try {
+            const audio = new Audio(url);
+            audio.volume = Math.min(1.0, state.volumeMultiplier / 1.5);
+            audio.play().catch(() => {});
+          } catch(e) {}
+        }
       }
     };
 
-    /* 4. Isolated Web Worker Timer */
+    /* 4. Isolated Background Web Worker Timer */
     function initWorkerTimer() {
       const workerBlobCode = `
         let timer = null;
@@ -932,19 +970,20 @@
       }
     });
 
-    /* 6. Rapid High-Energy Vibration */
+    /* 6. High-Force Staggered Burst Vibration (Distinct Physical Shock) */
     function getVibrationPattern() {
       if (state.vibeIntensity === 'normal') {
-        return [220, 60, 220]; // 2 fast punchy pulses
+        return [300, 150, 300]; // 2 heavy thuds
       }
       if (state.vibeIntensity === 'heavy') {
-        return [300, 60, 300, 60, 450]; // 3 rapid heavy pulses
+        return [400, 150, 400, 150, 600]; // 3 deep pulses
       }
-      return [400, 60, 400, 60, 400, 60, 700]; // Max Earthquake rapid fire
+      // Maximum Earthquake: 4 distinct high-force pulses
+      return [500, 150, 500, 150, 500, 150, 900];
     }
 
     function triggerAlertNow(soundName, notificationTitle) {
-      // 1. Play Sound through active background pipeline
+      // 1. Play Sound directly through OS audio hardware thread
       SoundVault.play(soundName);
 
       // 2. Hardware vibration when screen is ON
@@ -952,14 +991,22 @@
         navigator.vibrate(getVibrationPattern());
       }
 
-      // 3. Android System Notification Channel with rapid burst vibration pattern
-      if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+      // 3. Post to Service Worker with UNIQUE Tag so Android fires full vibration motor on lockscreen
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'TRIGGER_ALERT',
+          title: notificationTitle || 'BoomPace Alert',
+          body: `Interval ${state.currentInterval} complete!`,
+          vibrate: getVibrationPattern()
+        });
+      } else if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(reg => {
           reg.showNotification(notificationTitle || 'BoomPace Alert', {
             body: `Interval ${state.currentInterval} complete!`,
             vibrate: getVibrationPattern(),
-            tag: 'boompace-cue',
+            tag: 'boompace-alert-' + Date.now(),
             renotify: true,
+            requireInteraction: true,
             silent: false
           });
         }).catch(() => {});
@@ -979,6 +1026,7 @@
 
     function updateMasterVolume(val) {
       state.volumeMultiplier = val / 100;
+      AudioEngine.setVolume(state.volumeMultiplier);
       const lbl = document.getElementById('vol-percentage-label');
       if (lbl) {
         lbl.textContent = `${val}% ${val > 100 ? '(OVERDRIVE)' : ''}`;
@@ -1111,8 +1159,6 @@
       state.sessionElapsed = realElapsed;
       state.intervalRemaining--;
 
-      // NO SOUNDS OR VIBRATIONS DURING NORMAL TICKING (TOTAL SILENCE)
-
       // TRIGGER ONLY ON INTERVAL REACHED (0:00)
       if (state.intervalRemaining <= 0) {
         if (state.restSec > 0 && !state.isRestPhase) {
@@ -1153,18 +1199,16 @@
     }
 
     function startBackgroundAudio() {
-      const player = document.getElementById('native-audio-player');
-      if (player) {
-        player.src = SoundVault.silentUrl;
-        player.loop = true;
-        player.play().catch(() => {});
+      const anchor = document.getElementById('native-audio-anchor');
+      if (anchor) {
+        anchor.play().catch(() => {});
       }
     }
 
     function stopBackgroundAudio() {
-      const player = document.getElementById('native-audio-player');
-      if (player) {
-        player.pause();
+      const anchor = document.getElementById('native-audio-anchor');
+      if (anchor) {
+        anchor.pause();
       }
     }
 
@@ -1174,6 +1218,7 @@
       const icon = document.getElementById('btn-timer-icon');
 
       if (state.isRunning) {
+        AudioEngine.init();
         if ('Notification' in window && Notification.permission === 'default') {
           Notification.requestPermission();
         }
